@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
+const jwt = require('jsonwebtoken')
 
 const userSchema = new mongoose.Schema(
   {
@@ -50,6 +51,15 @@ const userSchema = new mongoose.Schema(
   }
 );
 
+userSchema.methods.toJSON = function () {
+    const user = this
+    const userObject = user.toObject();
+
+    delete userObject.password;
+    delete userObject.tokens
+    return userObject
+}
+
 userSchema.pre("save", async function (next) {
   const user = this;
   if (user.isModified("password")) {
@@ -66,6 +76,21 @@ userSchema.statics.findByCredentails = async (email, password) => {
     throw new Error({ error: "Invalid email or password" });
   }
   return user;
+};
+
+userSchema.methods.generateToken = async function () {
+  const user = this;
+  const token = jwt.sign(
+    {
+      _id: user._id.toString(),
+    },
+    process.env.JWT
+  );
+  user.tokens = user.tokens.concat({
+    token,
+  });
+  await user.save();
+  return token;
 };
 
 const User = mongoose.model("User", userSchema);
