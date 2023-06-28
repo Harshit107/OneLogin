@@ -7,7 +7,7 @@ const userValidator = (data) => {
   if (!validator.isEmail(data.email))
     throw new Error("Invalid email or password");
 
-  return { email: data.email};
+  return { email: data.email, password: data.password};
 };
 
 module.exports = {

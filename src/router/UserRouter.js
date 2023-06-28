@@ -3,14 +3,26 @@ const router = new express.Router();
 const User = require("../model/User.js");
 const validator = require('../Helper/Validator.js');
 
+//dev dependencies
+const {errorLog, successLog, normalLog} = require("../adminSection/Logs.js");
+
+
 
 
 // ===================    Method Area  ======================================
 
+const showErrorLog = (message) => {
+  errorLog(message);
+};
+
+
+const showSuccessLog = (message) => {
+  successLog(message);
+};
 
 
 
-
+// ----------------------     Create User   ------------------------------------------
 router.post('/users/create', async (req, res) => {
 
     let isUserCreated = false;
@@ -37,14 +49,42 @@ router.post('/users/create', async (req, res) => {
     }
     catch (err) { 
 
-      console.log(err.message);
+      showErrorLog(err.message);
       if(isUserCreated){
         const createdUser = await User.findOneAndDelete({email:req.body.email});
-        console.log("deleted created user");
+        showErrorLog("deleted new created user");
       }        
       res.status(400).send({error : err.message})
     }
 
 });
+
+
+// ----------------------     Login User   ------------------------------------------
+
+router.post('/users/login', async (req, res) => {
+
+    try {
+      const {email, password} = validator.userValidator(req.body);
+      
+      const user = await User.findByCredentails(email,password)
+      const token = await user.generateToken();
+      showSuccessLog("User Logged In Successfully")
+      res.status(200).send({
+        user,
+        token,
+        message : "User logged in successfully"
+      })
+    }
+    catch (err) { 
+      showErrorLog(err.message);     
+      res.status(400).send({error : err.message})
+    }
+
+});
+
+
+
+
 
 module.exports = router;
