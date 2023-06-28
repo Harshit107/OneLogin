@@ -2,6 +2,8 @@ const express = require("express");
 const router = new express.Router();
 const User = require("../model/User.js");
 const validator = require('../Helper/Validator.js');
+const userAuth = require('../auth/userAuth.js')
+
 
 //dev dependencies
 const {errorLog, successLog, normalLog} = require("../adminSection/Logs.js");
@@ -22,7 +24,11 @@ const showSuccessLog = (message) => {
 
 
 
-// ----------------------     Create User   ------------------------------------------
+/* -------------------------------------------------------------------------- */
+/*                                 Create User                                */
+/* -------------------------------------------------------------------------- */
+
+
 router.post('/users/create', async (req, res) => {
 
     let isUserCreated = false;
@@ -60,7 +66,9 @@ router.post('/users/create', async (req, res) => {
 });
 
 
-// ----------------------     Login User   ------------------------------------------
+/* -------------------------------------------------------------------------- */
+/*                                 Login User                                 */
+/* -------------------------------------------------------------------------- */
 
 router.post('/users/login', async (req, res) => {
 
@@ -84,32 +92,174 @@ router.post('/users/login', async (req, res) => {
 });
 
 
+/* -------------------------------------------------------------------------- */
+/*                                 Logout User                                */
+/* -------------------------------------------------------------------------- */
+
+router.post('/users/logout', userAuth, async (req, res) => {
+
+    try {
+
+      const tokenToRemove = req.token;
+      const user = req.user;
+
+      user.tokens =  user.tokens.filter(token => token.token !== tokenToRemove );
+      await user.save();
+      res.send({message : "User logged out successfully"})
+
+    }
+    catch (err) { 
+      showErrorLog(err.message);     
+      res.status(400).send({error : err.message})
+    }
+
+});
+
+
+/* -------------------------------------------------------------------------- */
+/*                        Logout User from every device                       */
+/* -------------------------------------------------------------------------- */
+
+router.post('/users/logout/all', userAuth, async (req, res) => {
+
+    try {
+
+      const user = req.user;
+      user.tokens = [];
+
+      await user.save();
+      res.send({message : "User logged out successfully"})
+
+    }
+    catch (err) { 
+      showErrorLog(err.message);     
+      res.status(400).send({error : err.message})
+    }
+
+});
 
 
 
+/* -------------------------------------------------------------------------- */
+/*                        Logout User from every device                       */
+/* -------------------------------------------------------------------------- */
+
+router.post('/users/logout/all', userAuth, async (req, res) => {
+
+    try {
+
+      const user = req.user;
+      user.tokens = [];
+
+      await user.save();
+      res.send({message : "User logged out successfully"})
+
+    }
+    catch (err) { 
+      showErrorLog(err.message);     
+      res.status(400).send({error : err.message})
+    }
+
+});
 
 
 
+/* -------------------------------------------------------------------------- */
+/*                          Logout User from specific                         */
+/* -------------------------------------------------------------------------- */
+
+
+router.post('/users/logout/device', userAuth, async (req, res) => {
+
+    try {
+      const tokenToRemove = req.body.token+'';
+      const user = req.user;
+
+      if(!tokenToRemove) {
+        return res.status(403).send({error : "No Device Found"});
+      }
+      
+      const allToken = user.tokens.filter(
+        (token) => token.token !== tokenToRemove
+      );
+
+      if (allToken.length === user.tokens.length)
+        return res.status(400).send({ error: "Device not found in login list" }); 
+
+      user.tokens = allToken;
+      await user.save();
+      res.send({message : "User logged out successfully"})
+
+    }
+    catch (err) { 
+      showErrorLog(err.message);     
+      res.status(400).send({error : err.message})
+    }
+
+});
+
+
+/* -------------------------------------------------------------------------- */
+/*                          checking profile from Id                          */
+/* -------------------------------------------------------------------------- */
+
+router.get('/users/profile', userAuth, async (req, res) => {
+
+    try {
+        const user = await User.findById(req.user._id)
+        res.status(200).send({message : user})
+
+
+    } catch (error) {
+        res.status(403).send({
+            "Error": error
+        })
+    }
+})
 
 
 
-
-//+++++++++++++++++++ Checks 
-
-
-// ----------------------     Check is User Login  ------------------------------------------
+/* -------------------------------------------------------------------------- */
+/*                           check user is verified                           */
+/* -------------------------------------------------------------------------- */
 
 
-router.post("/users/check/login", async (req, res) => {
+router.get("/users/isVerified", userAuth, async (req, res) => {
   try {
-   
-    res.send("Done");
+    const user = await User.findById(req.user._id);
+    res.status(200).send({ message: user.isVerified });
+  } catch (error) {
+    res.status(403).send({
+      Error: error,
+    });
+  }
+});
+
+
+
+
+
+
+
+
+  //+++++++++++++++++++     Checks      ++++++++++++++++++++++++++++++
+
+/* -------------------------------------------------------------------------- */
+/*                             Check is User Login                            */
+/* -------------------------------------------------------------------------- */
+
+
+router.get("/users/check/login",userAuth, async (req, res) => {
+  try {
+    
+    res.status(200).send({message : "true"});
 
   } catch (err) {
     showErrorLog(err.message);
     res.status(400).send({ error: err.message });
   }
 });
+
 
 
 module.exports = router;

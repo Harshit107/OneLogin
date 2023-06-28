@@ -7,7 +7,7 @@ const MONGO_URL = process.env.MONGO_URL;
         useNewUrlParser: true,
         useUnifiedTopology: true,
       })
-      .then( ( ) => console.log("MongoDb connected Successfully"))
+      .then( ( ) => '')
       .catch((err) => console.log("MongoDb error: " + err));
   } catch (err) {
     console.error(err);
