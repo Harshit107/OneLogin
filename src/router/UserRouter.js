@@ -87,4 +87,29 @@ router.post('/users/login', async (req, res) => {
 
 
 
+
+
+
+
+
+
+
+//+++++++++++++++++++ Checks 
+
+
+// ----------------------     Check is User Login  ------------------------------------------
+
+
+router.post("/users/check/login", async (req, res) => {
+  try {
+   
+    res.send("Done");
+
+  } catch (err) {
+    showErrorLog(err.message);
+    res.status(400).send({ error: err.message });
+  }
+});
+
+
 module.exports = router;
