@@ -277,18 +277,11 @@ router.get("/profile", userAuth, async (req, res) => {
   }
 });
 
-/* -------------------------------------------------------------------------- */
-/*                           check user is verified                           */
-/* -------------------------------------------------------------------------- */
 
-router.get("/isVerified", userAuth, async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id);
-    res.status(200).send({ message: user.isVerified });
-  } catch (error) {
-    return res.status(400).send({ error: checkStringMessage(error.message) });
-  }
-});
+
+
+
+
 
 //+++++++++++++++++++     Checks      ++++++++++++++++++++++++++++++
 
@@ -302,6 +295,20 @@ router.get("/check/login", userAuth, async (req, res) => {
   } catch (error) {
     showErrorLog(error.message);
     res.status(400).send({ error: err.message });
+  }
+});
+
+
+/* -------------------------------------------------------------------------- */
+/*                           check user is verified                           */
+/* -------------------------------------------------------------------------- */
+
+router.get("/isVerified", userAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    res.status(200).send({ message: user.isVerified });
+  } catch (error) {
+    return res.status(400).send({ error: checkStringMessage(error.message) });
   }
 });
 
