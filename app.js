@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 5000;
 const app = express();
 app.use(express.json());
 
-app.use(userRouter);
+app.use("/users",userRouter);
 
 app.get("/checkserver", (req, res) => res.send("<h1>Hey Developer! Server is working fine, Go aHead!"));
 
