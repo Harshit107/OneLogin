@@ -10,7 +10,6 @@ const MONGO_URL = process.env.MONGO_URL;
       .then( ( ) => '')
       .catch((err) => console.log("MongoDb error: " + err));
   } catch (err) {
-    console.error(err);
     process.exit(1);
 
 };
