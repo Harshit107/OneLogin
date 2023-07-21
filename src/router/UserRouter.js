@@ -9,9 +9,11 @@ const { v4: uuidv4 } = require("uuid");
 const checkStringMessage = require("../Helper/StringHelper.js");
 const forgetPasswordTemplate = require("../template/ForgetPasswordTemplate.js");
 const freelyEmail = require("freely-email");
+const {appName, appEmail, appReplyEmail, appVerificationUrl}  = require("../config.js")
 
 //dev dependencies
 const { errorLog, successLog, normalLog } = require("../adminSection/Logs.js");
+const VerificationLink = require("../model/VerificationLink.js");
 
 // ===================    Method Area  ======================================
 
@@ -22,6 +24,17 @@ const showErrorLog = (message) => {
 const showSuccessLog = (message) => {
   successLog(message);
 };
+
+const createTemporaryVerificationLink = async (email) => {
+
+  const newVerificationLink = await new VerificationLink({email});
+  if(!newVerificationLink)
+    throw new Error('Verification link not created, please try again after sometime');
+  await newVerificationLink.save();
+  return (appVerificationUrl +  newVerificationLink._id);  
+}
+
+
 
 /* # # # # # # # # # # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # */
 
@@ -262,11 +275,45 @@ router.post("/logout/device", userAuth, async (req, res) => {
   }
 });
 
+/* ------------------------------------------------------------------------------- */
+/*                                 Send Verification mail                            
+/* ------------------------------------------------------------------------------- */
+
+router.post("/verification/email", async (req, res) => {
+  try {
+
+    const { email } = validator.emailValidator(req.body);
+    const user = await User.findOne({ email});
+    if(!user)
+      throw new Error("User is not registerd with us");
+      
+    const temporaryVerificationLink = await createTemporaryVerificationLink(
+      email
+    );
+
+    const verificationEmailObject = {
+      app : appName,
+      recipient : email,
+      sender : appEmail,
+      replyTo : appReplyEmail,
+      subject: "Email Verification",
+      link : temporaryVerificationLink
+    }
+
+    const emailInfo = await freelyEmail.sendLink(verificationEmailObject);
+    res.status(200).send({msg : "Email Sent Successfully"});   
+
+
+  } catch (error) {
+    showErrorLog(error)
+    return res.status(400).send({ error: checkStringMessage(error.message) });
+  }
+});
 
 
 
 
-// ​‌‍‌⁡⁢⁣⁢𝘂𝗻𝗱𝗲𝗰𝗶𝗱𝗲𝗱⁡​ 
+// ​‌‍‌⁡⁢⁣⁢𝘂𝗻𝗱𝗲𝗰𝗶𝗱𝗲𝗱⁡​
 /* -------------------------------------------------------------------------- */
 /*                               forget password                              */
 /* -------------------------------------------------------------------------- */
@@ -276,10 +323,10 @@ router.get("/forget", async (req, res) => {
     const { email } =
       { email: "harshit107.in@gmail.com" } ||
       validator.emailValidator(req.body);
-      showSuccessLog(email);
-      const emailTemplate = forgetPasswordTemplate(
-        "http://localhost:3001/checkserver"
-      );
+    showSuccessLog(email);
+    const emailTemplate = forgetPasswordTemplate(
+      "http://localhost:3001/checkserver"
+    );
 
     const emailResult = await freelyEmail.sendLink({
       app: "OneLogin",
@@ -290,17 +337,13 @@ router.get("/forget", async (req, res) => {
       link: "214758",
       HTMLfile: emailTemplate,
     });
-    if(emailResult.data)
-      console.log("Success > ",emailResult.data);
-    else
-      console.log("Error  > ", emailResult.error);
+    if (emailResult.data) console.log("Success > ", emailResult.data);
+    else console.log("Error  > ", emailResult.error);
     res.send("Don");
-
   } catch (error) {
     console.log(error.message);
     res.send(error.message);
   }
-
 });
 
 /* # # # # # # # # # # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
