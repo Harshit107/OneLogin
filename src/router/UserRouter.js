@@ -6,8 +6,9 @@ const validator = require("../Helper/Validator.js");
 const userAuth = require("../auth/UserAuth.js");
 const mongoose = require("mongoose");
 const { v4: uuidv4 } = require("uuid");
-const checkStringMessage = require('../Helper/StringHelper.js')
-
+const checkStringMessage = require("../Helper/StringHelper.js");
+const forgetPasswordTemplate = require("../template/ForgetPasswordTemplate.js");
+const freelyEmail = require("freely-email");
 
 //dev dependencies
 const { errorLog, successLog, normalLog } = require("../adminSection/Logs.js");
@@ -21,6 +22,12 @@ const showErrorLog = (message) => {
 const showSuccessLog = (message) => {
   successLog(message);
 };
+
+/* # # # # # # # # # # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # */
+
+/*                                 Create and Login                              */
+
+/* # # # # # # # # # # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # */
 
 /* -------------------------------------------------------------------------- */
 /*                                 Create User                                */
@@ -38,12 +45,10 @@ router.post("/create", async (req, res) => {
 
     const newUser = new User(req.body);
     if (!newUser)
-      return res
-        .status(403)
-        .send({
-          error: "Registration Failed!",
-          message: "check your input data",
-        });
+      return res.status(403).send({
+        error: "Registration Failed!",
+        message: "check your input data",
+      });
 
     await newUser.save();
     isUserCreated = true;
@@ -95,7 +100,6 @@ router.post("/login", async (req, res) => {
 
 router.post("/login/qr/store", async (req, res) => {
   try {
-
     const uniqueId = uuidv4();
     const newQrCode = new QRCode({ code: uniqueId });
 
@@ -107,13 +111,11 @@ router.post("/login/qr/store", async (req, res) => {
     await newQrCode.save();
 
     res.send({ message: newQrCode.code });
-
   } catch (error) {
     errorLog(error.message);
-    res.status(400).send({error : error.message})
+    res.status(400).send({ error: error.message });
   }
 });
-
 
 /* -------------------------------------------------------------------------- */
 /*                             Login using QR code - add token                          */
@@ -121,18 +123,18 @@ router.post("/login/qr/store", async (req, res) => {
 
 router.post("/login/qr/storetoken", userAuth, async (req, res) => {
   try {
+    const { code } = req.body;
+    if (!code) return res.status(400).send({ error: "QR-Code not found" });
 
-    const {code} = req.body;
-    if(!code)
-      return res.status(400).send({error:"QR-Code not found"});
-    
-    const qrCodeResult = await QRCode.findOne({code});
+    const qrCodeResult = await QRCode.findOne({ code });
 
-    if(!qrCodeResult)
+    if (!qrCodeResult)
       return res.status(400).send({ error: "Invalid QR-Code" });
 
-    if(qrCodeResult.token)
-      return res.status(400).send({ error: "User is already registered with this QR-code" });
+    if (qrCodeResult.token)
+      return res
+        .status(400)
+        .send({ error: "User is already registered with this QR-code" });
 
     const newTokenForNewDevice = await req.user.generateToken();
 
@@ -140,14 +142,11 @@ router.post("/login/qr/storetoken", userAuth, async (req, res) => {
     await qrCodeResult.save();
 
     res.send({ message: "User Loggen in successfully" });
-
   } catch (error) {
     errorLog(error.message);
-    res.status(400).send({error : error.message})
+    res.status(400).send({ error: error.message });
   }
 });
-
-
 
 /* -------------------------------------------------------------------------- */
 /*                             Login using QR code - validate                          */
@@ -155,31 +154,33 @@ router.post("/login/qr/storetoken", userAuth, async (req, res) => {
 
 router.post("/login/qr/validate", async (req, res) => {
   try {
+    const { code } = req.body;
+    if (!code) return res.status(400).send({ error: "QR-Code not found" });
 
-    const {code} = req.body;
-    if(!code)
-      return res.status(400).send({error:"QR-Code not found"});
-    
-    const qrCodeResult = await QRCode.findOne({code});
-    if(!qrCodeResult)
+    const qrCodeResult = await QRCode.findOne({ code });
+    if (!qrCodeResult)
       return res.status(400).send({ error: "Invalid QR-Code" });
 
     if (!qrCodeResult.token)
-       return res.status(400).send({ error: "Waiting for user to scan qr code" });
+      return res
+        .status(400)
+        .send({ error: "Waiting for user to scan qr code" });
 
     const newlyRegisteredToken = qrCodeResult.token;
-    await QRCode.deleteOne({ _id: qrCodeResult._id });;
-    
+    await QRCode.deleteOne({ _id: qrCodeResult._id });
+
     res.send({
       message: "User Logged in successfully",
       token: newlyRegisteredToken,
     });
-
   } catch (error) {
     errorLog(error.message);
-    res.status(400).send({error : error.message})
+    res.status(400).send({ error: error.message });
   }
 });
+
+/* -------------------------------------------------------------------------- */
+/*                        ***** Logout Section  ******                        */
 
 /* -------------------------------------------------------------------------- */
 /*                                 Logout User                                */
@@ -223,12 +224,9 @@ router.post("/logout/all", userAuth, async (req, res) => {
 router.post("/logout/all/current", userAuth, async (req, res) => {
   try {
     const user = req.user;
-    user.tokens = user.tokens.filter(
-      (token) => token.token === req.token
-    );
+    user.tokens = user.tokens.filter((token) => token.token === req.token);
     await user.save();
     res.send({ message: "All user except current logged out successfully" });
-
   } catch (error) {
     showErrorLog(error.message);
     return res.status(400).send({ error: checkStringMessage(error.message) });
@@ -264,26 +262,52 @@ router.post("/logout/device", userAuth, async (req, res) => {
   }
 });
 
+
+
+
+
+// ​‌‍‌⁡⁢⁣⁢𝘂𝗻𝗱𝗲𝗰𝗶𝗱𝗲𝗱⁡​ 
 /* -------------------------------------------------------------------------- */
-/*                          checking profile from Id                          */
+/*                               forget password                              */
 /* -------------------------------------------------------------------------- */
 
-router.get("/profile", userAuth, async (req, res) => {
+router.get("/forget", async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-    res.status(200).send({ message: user });
+    const { email } =
+      { email: "harshit107.in@gmail.com" } ||
+      validator.emailValidator(req.body);
+      showSuccessLog(email);
+      const emailTemplate = forgetPasswordTemplate(
+        "http://localhost:3001/checkserver"
+      );
+
+    const emailResult = await freelyEmail.sendLink({
+      app: "OneLogin",
+      subject: "Forget Password",
+      recipient: email,
+      sender: "OneLogin",
+      replyTo: "support@oneLogin.com",
+      link: "214758",
+      HTMLfile: emailTemplate,
+    });
+    if(emailResult.data)
+      console.log("Success > ",emailResult.data);
+    else
+      console.log("Error  > ", emailResult.error);
+    res.send("Don");
+
   } catch (error) {
-    return res.status(400).send({ error: checkStringMessage(error.message) });
+    console.log(error.message);
+    res.send(error.message);
   }
+
 });
 
+/* # # # # # # # # # # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 
+  - Checks      
 
-
-
-
-
-//+++++++++++++++++++     Checks      ++++++++++++++++++++++++++++++
+ # # # # # # # # # # # # # #  # # # # # # # # # # # # # # # # # # # # # # # # # # # # */
 
 /* -------------------------------------------------------------------------- */
 /*                             Check is User Login                            */
@@ -298,7 +322,6 @@ router.get("/check/login", userAuth, async (req, res) => {
   }
 });
 
-
 /* -------------------------------------------------------------------------- */
 /*                           check user is verified                           */
 /* -------------------------------------------------------------------------- */
@@ -307,6 +330,19 @@ router.get("/isVerified", userAuth, async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
     res.status(200).send({ message: user.isVerified });
+  } catch (error) {
+    return res.status(400).send({ error: checkStringMessage(error.message) });
+  }
+});
+
+/* -------------------------------------------------------------------------- */
+/*                          checking profile from Id                          */
+/* -------------------------------------------------------------------------- */
+
+router.get("/profile", userAuth, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    res.status(200).send({ message: user });
   } catch (error) {
     return res.status(400).send({ error: checkStringMessage(error.message) });
   }
