@@ -301,7 +301,7 @@ router.post("/verification/email", async (req, res) => {
     }
 
     const emailInfo = await freelyEmail.sendLink(verificationEmailObject);
-    res.status(200).send({msg : "Email Sent Successfully"});   
+    res.status(200).send({msg : "Email Sent Successfully", emailInfo});   
 
 
   } catch (error) {
@@ -309,6 +309,38 @@ router.post("/verification/email", async (req, res) => {
     return res.status(400).send({ error: checkStringMessage(error.message) });
   }
 });
+
+
+
+/* -------------------------------------------------------------------------- */
+/*                             email verification                             */
+/* -------------------------------------------------------------------------- */
+
+router.get("/verification/email/:id", async (req, res) => {
+  try {
+    const verificationId = req.params.id;
+    const verificationUserLink = await VerificationLink.findById(verificationId);
+
+    if (!verificationUserLink)
+      throw new Error("Invalid verification link or link expired");
+
+    const user = await User.findOne({
+      email: verificationUserLink.email
+    });
+    if (!user) throw new Error("User not found");
+
+    user.isVerified = true;
+    await user.save();
+    await VerificationLink.findByIdAndDelete(verificationId);
+
+    res.status(200).send({ msg: "Email Verification Successfully" });
+    
+  } catch (error) {
+    showErrorLog(error);
+    return res.status(400).send({ error: checkStringMessage(error.message) });
+  }
+});
+
 
 
 
