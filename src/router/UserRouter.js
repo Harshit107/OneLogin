@@ -14,6 +14,7 @@ const {appName, appEmail, appReplyEmail, appVerificationUrl}  = require("../conf
 //dev dependencies
 const { errorLog, successLog, normalLog } = require("../adminSection/Logs.js");
 const VerificationLink = require("../model/VerificationLink.js");
+const { createDeveloper } = require("../database/FirebaseHelper.js");
 
 // ===================    Method Area  ======================================
 
@@ -67,11 +68,15 @@ router.post("/create", async (req, res) => {
     isUserCreated = true;
     const token = await newUser.generateToken();
     const userId = newUser._id;
+
+    const securityKey = await createDeveloper(userId);
+
     res.status(201).send({
       user: newUser,
       token: token,
       userId: userId,
       message: "User created successfully",
+      securityKey,
     });
   } catch (err) {
     showErrorLog(err.message);

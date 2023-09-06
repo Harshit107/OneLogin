@@ -6,6 +6,7 @@ const {errorLog : showErrorMessage} = require("../adminSection/Logs.js");
 
 const userAuth = async (req, res, next) => {
   try {
+    // console.log(req.header("Authorization"));
     const token = req.header("Authorization").replace("Bearer ","");
     if(!token || token == null)
        throw new Error("Authentication required" );

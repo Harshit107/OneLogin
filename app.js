@@ -11,7 +11,7 @@ app.use(express.json());
 
 app.use(testingRouter);
 app.use("/users",userRouter);
-app.use( UserProject);
+app.use("/developer", UserProject);
 
 
 app.get("/checkserver", (req, res) => res.send("<h1>Hey Developer! Server is working fine, Go aHead!"));
