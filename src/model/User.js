@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
-const jwt = require('jsonwebtoken')
+const jwt = require("jsonwebtoken");
 
 const userSchema = new mongoose.Schema(
   {
@@ -48,17 +48,17 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 userSchema.methods.toJSON = function () {
-    const user = this
-    const userObject = user.toObject();
+  const user = this;
+  const userObject = user.toObject();
 
-    delete userObject.password;
-    delete userObject.tokens
-    return userObject
-}
+  delete userObject.password;
+  delete userObject.tokens;
+  return userObject;
+};
 
 userSchema.pre("save", async function (next) {
   const user = this;
@@ -70,8 +70,7 @@ userSchema.pre("save", async function (next) {
 
 userSchema.statics.findByCredentails = async (email, password) => {
   const user = await User.findOne({ email });
-  if (!user) 
-    throw new Error("Invalid email or password");
+  if (!user) throw new Error("Invalid email or password");
   const checkPassworMatch = await bcrypt.compare(password, user.password);
   if (!checkPassworMatch) {
     throw new Error("Invalid email or password");
@@ -85,7 +84,7 @@ userSchema.methods.generateToken = async function () {
     {
       _id: user._id.toString(),
     },
-    process.env.JWT
+    process.env.JWT,
   );
   user.tokens = user.tokens.concat({
     token,
