@@ -1,47 +1,26 @@
-const checkStringMessage = require("../utils/stringHelper.js");
-const { errorLog } = require("../services/admin/logs.js");
+const catchAsync = require("../utils/catchAsync");
 
-exports.current = async (req, res) => {
-  try {
-    req.user.tokens = req.user.tokens.filter(t => t.token !== req.token);
-    await req.user.save();
-    res.send({ message: "User logged out successfully" });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: checkStringMessage(error.message) });
-  }
-};
+exports.current = catchAsync(async (req, res) => {
+  req.user.tokens = req.user.tokens.filter(t => t.token !== req.token);
+  await req.user.save();
+  res.status(200).json({ message: "User logged out successfully" });
+});
 
-exports.all = async (req, res) => {
-  try {
-    req.user.tokens = [];
-    await req.user.save();
-    res.send({ message: "User logged out successfully" });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: checkStringMessage(error.message) });
-  }
-};
+exports.all = catchAsync(async (req, res) => {
+  req.user.tokens = [];
+  await req.user.save();
+  res.status(200).json({ message: "All devices logged out successfully" });
+});
 
-exports.allExceptCurrent = async (req, res) => {
-  try {
-    req.user.tokens = req.user.tokens.filter(t => t.token === req.token);
-    await req.user.save();
-    res.send({ message: "All user except current logged out successfully" });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: checkStringMessage(error.message) });
-  }
-};
+exports.allExceptCurrent = catchAsync(async (req, res) => {
+  req.user.tokens = req.user.tokens.filter(t => t.token === req.token);
+  await req.user.save();
+  res.status(200).json({ message: "All devices except current logged out successfully" });
+});
 
-exports.device = async (req, res) => {
-  try {
-    const tokenToRemove = req.body.token + "";
-    req.user.tokens = req.user.tokens.filter(t => t.token !== tokenToRemove);
-    await req.user.save();
-    res.send({ message: "User logged out successfully" });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: checkStringMessage(error.message) });
-  }
-};
+exports.device = catchAsync(async (req, res) => {
+  const tokenToRemove = String(req.body.token);
+  req.user.tokens = req.user.tokens.filter(t => t.token !== tokenToRemove);
+  await req.user.save();
+  res.status(200).json({ message: "Device logged out successfully" });
+});

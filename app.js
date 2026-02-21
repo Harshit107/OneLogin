@@ -5,6 +5,7 @@ const testingRouter = require("./src/routes/testingRoutes.js");
 const UserProject = require("./src/routes/projectRoutes.js");
 const oauthRouter = require("./src/routes/oauthRoutes.js");
 const cookieParser = require("cookie-parser");
+const errorHandler = require("./src/middlewares/errorHandler");
 
 const PORT = process.env.PORT || 5000;
 
@@ -22,5 +23,8 @@ app.use("/developer", UserProject);
 app.get("/checkserver", (req, res) =>
   res.send("<h1>Hey Developer! Server is working fine, Go aHead!"),
 );
+
+// Global Error Handler
+app.use(errorHandler);
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

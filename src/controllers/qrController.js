@@ -1,52 +1,43 @@
 const QRCode = require("../model/QRCode.js");
 const { v4: uuidv4 } = require("uuid");
-const { errorLog } = require("../services/admin/logs.js");
+const catchAsync = require("../utils/catchAsync");
+const ApiError = require("../utils/ApiError");
 
-exports.store = async (req, res) => {
-  try {
-    const uniqueId = uuidv4();
-    const newQrCode = new QRCode({ code: uniqueId });
-    await newQrCode.save();
-    res.send({ message: newQrCode.code });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: error.message });
+exports.store = catchAsync(async (req, res) => {
+  const uniqueId = uuidv4();
+  const newQrCode = new QRCode({ code: uniqueId });
+  await newQrCode.save();
+  res.status(201).json({ message: newQrCode.code });
+});
+
+exports.storeToken = catchAsync(async (req, res) => {
+  const { code } = req.body;
+  const qrCodeResult = await QRCode.findOne({ code });
+
+  if (!qrCodeResult || qrCodeResult.token) {
+    throw new ApiError(400, "Invalid QR-Code");
   }
-};
 
-exports.storeToken = async (req, res) => {
-  try {
-    const { code } = req.body;
-    const qrCodeResult = await QRCode.findOne({ code });
+  const newTokenForNewDevice = await req.user.generateToken();
+  qrCodeResult.token = newTokenForNewDevice;
+  await qrCodeResult.save();
 
-    if (!qrCodeResult || qrCodeResult.token)
-      return res.status(400).send({ error: "Invalid QR-Code" });
+  res.status(200).json({ message: "Device authorized successfully" });
+});
 
-    const newTokenForNewDevice = await req.user.generateToken();
-    qrCodeResult.token = newTokenForNewDevice;
-    await qrCodeResult.save();
+exports.validate = catchAsync(async (req, res) => {
+  const { code } = req.body;
+  const qrCodeResult = await QRCode.findOne({ code });
 
-    res.send({ message: "User Loggen in successfully" });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: error.message });
+  if (!qrCodeResult || !qrCodeResult.token) {
+    throw new ApiError(400, "Waiting for user to scan QR code");
   }
-};
 
-exports.validate = async (req, res) => {
-  try {
-    const { code } = req.body;
-    const qrCodeResult = await QRCode.findOne({ code });
+  const newlyRegisteredToken = qrCodeResult.token;
+  await QRCode.deleteOne({ _id: qrCodeResult._id });
 
-    if (!qrCodeResult || !qrCodeResult.token)
-      return res.status(400).send({ error: "Waiting for user to scan qr code" });
-
-    const newlyRegisteredToken = qrCodeResult.token;
-    await QRCode.deleteOne({ _id: qrCodeResult._id });
-
-    res.send({ message: "User Logged in successfully", token: newlyRegisteredToken });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: error.message });
-  }
-};
+  res.status(200).json({ 
+    message: "User logged in successfully natively", 
+    token: newlyRegisteredToken 
+  });
+});

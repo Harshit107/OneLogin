@@ -4,13 +4,15 @@ const router = new express.Router();
 const userAuth = require("../middlewares/userAuth");
 
 const auth = require("../controllers/authController");
+const validate = require("../middlewares/validate");
+const authValidation = require("../validations/authValidation");
 const qr = require("../controllers/qrController");
 const logout = require("../controllers/logoutController");
 const verification = require("../controllers/verificationController");
 const check = require("../controllers/checkController");
 
-router.post("/create", auth.create);
-router.post("/login", auth.login);
+router.post("/create", validate(authValidation.register), auth.create);
+router.post("/login", validate(authValidation.login), auth.login);
 
 router.post("/login/qr/store", qr.store);
 router.post("/login/qr/storetoken", userAuth, qr.storeToken);
@@ -21,7 +23,11 @@ router.post("/logout/all", userAuth, logout.all);
 router.post("/logout/all/current", userAuth, logout.allExceptCurrent);
 router.post("/logout/device", userAuth, logout.device);
 
-router.post("/verification/email", verification.sendEmail);
+router.post(
+  "/verification/email", 
+  validate(authValidation.emailOnly), 
+  verification.sendEmail
+);
 router.get("/verification/email/:id", verification.verify);
 
 router.get("/check/login", userAuth, check.login);

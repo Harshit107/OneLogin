@@ -1,6 +1,7 @@
 const User = require("../model/User.js");
 const VerificationLink = require("../model/VerificationLink.js");
-const validator = require("../utils/validator.js");
+const catchAsync = require("../utils/catchAsync.js");
+const ApiError = require("../utils/ApiError.js");
 const freelyEmail = require("freely-email");
 const {
   appName,
@@ -8,12 +9,12 @@ const {
   appReplyEmail,
   appVerificationUrl,
 } = require("../config.js");
-const { errorLog } = require("../services/admin/logs.js");
-const checkStringMessage = require("../utils/stringHelper.js");
 
 const sendVerificationEmail = async (email) => {
   const user = await User.findOne({ email });
-  if (!user) throw new Error("User is not registerd with us");
+  if (!user) {
+    throw new ApiError(404, "User is not registered with us");
+  }
 
   const link = new VerificationLink({ email });
   await link.save();
@@ -28,32 +29,27 @@ const sendVerificationEmail = async (email) => {
   });
 };
 
-exports.sendEmail = async (req, res) => {
-  try {
-    const { email } = validator.emailValidator(req.body);
-    await sendVerificationEmail(email);
-    res.status(200).send({ msg: "Email Sent Successfully" });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: checkStringMessage(error.message) });
+exports.sendEmail = catchAsync(async (req, res) => {
+  const { email } = req.body;
+  await sendVerificationEmail(email);
+  res.status(200).json({ msg: "Email Sent Successfully" });
+});
+
+exports.verify = catchAsync(async (req, res) => {
+  const verificationUserLink = await VerificationLink.findById(req.params.id);
+  
+  if (!verificationUserLink) {
+    throw new ApiError(400, "Invalid verification link");
   }
-};
 
-exports.verify = async (req, res) => {
-  try {
-    const verificationUserLink = await VerificationLink.findById(req.params.id);
-    if (!verificationUserLink) throw new Error("Invalid verification link");
-
-    const user = await User.findOne({ email: verificationUserLink.email });
+  const user = await User.findOne({ email: verificationUserLink.email });
+  if (user) {
     user.isVerified = true;
     await user.save();
-
-    await VerificationLink.findByIdAndDelete(req.params.id);
-    res.status(200).send({ msg: "Email Verification Successfully" });
-  } catch (error) {
-    errorLog(error.message);
-    res.status(400).send({ error: checkStringMessage(error.message) });
   }
-};
+
+  await VerificationLink.findByIdAndDelete(req.params.id);
+  res.status(200).json({ msg: "Email Verification Successfully" });
+});
 
 exports.sendVerificationEmail = sendVerificationEmail;
