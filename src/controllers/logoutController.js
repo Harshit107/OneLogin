@@ -1,5 +1,5 @@
-const checkStringMessage = require("../Helper/StringHelper.js");
-const { errorLog } = require("../adminSection/Logs.js");
+const checkStringMessage = require("../utils/stringHelper.js");
+const { errorLog } = require("../services/admin/logs.js");
 
 exports.current = async (req, res) => {
   try {

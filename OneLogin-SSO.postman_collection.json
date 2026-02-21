@@ -1,0 +1,181 @@
+{
+  "info": {
+    "_postman_id": "ab123456-cd78-ef90-12ab-34567890cdef",
+    "name": "OneLogin SSO Server",
+    "description": "API Collection for testing the newly implemented OAuth2 Single Sign-On flow.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Admin",
+      "item": [
+        {
+          "name": "Register OAuth Client",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-admin-secret",
+                "value": "super_secret_admin_key"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"app_name\": \"My Client App\",\n  \"redirect_uris\": [\"http://localhost:3000/callback\"],\n  \"allowed_scopes\": [\"read_user\"]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/oauth/register-client",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["oauth", "register-client"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Main Authentication",
+      "item": [
+        {
+          "name": "Login (Creates SSO Session Cookie)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"mypassword123\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/users/login",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["users", "login"]
+            }
+          }
+        },
+        {
+          "name": "Authorize (Browser Redirect Simulation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:5000/oauth/authorize?response_type=code&client_id={{client_id}}&redirect_uri=http://localhost:3000/callback&scope=read_user",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["oauth", "authorize"],
+              "query": [
+                { "key": "response_type", "value": "code" },
+                { "key": "client_id", "value": "{{client_id}}", "description": "Replace with the client_id obtained from Register OAuth Client" },
+                { "key": "redirect_uri", "value": "http://localhost:3000/callback" },
+                { "key": "scope", "value": "read_user" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. OAuth Token Management",
+      "item": [
+        {
+          "name": "Exchange Auth Code for Tokens",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grant_type\": \"authorization_code\",\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\",\n  \"redirect_uri\": \"http://localhost:3000/callback\",\n  \"code\": \"{{auth_code}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/oauth/token",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["oauth", "token"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"grant_type\": \"refresh_token\",\n  \"client_id\": \"{{client_id}}\",\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/oauth/token",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["oauth", "token"]
+            }
+          }
+        },
+        {
+          "name": "Get User Info (Protected)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "http://localhost:5000/oauth/userinfo",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["oauth", "userinfo"]
+            }
+          }
+        },
+        {
+          "name": "Revoke Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{access_token}}\",\n  \"token_type_hint\": \"access_token\"\n}"
+            },
+            "url": {
+              "raw": "http://localhost:5000/oauth/revoke-token",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "5000",
+              "path": ["oauth", "revoke-token"]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "client_id", "value": "REPLACE_ME" },
+    { "key": "client_secret", "value": "REPLACE_ME" },
+    { "key": "auth_code", "value": "REPLACE_ME" },
+    { "key": "access_token", "value": "REPLACE_ME" },
+    { "key": "refresh_token", "value": "REPLACE_ME" }
+  ]
+}

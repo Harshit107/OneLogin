@@ -1,13 +1,13 @@
 const express = require("express");
 const router = new express.Router();
 
-const userAuth = require("../auth/UserAuth");
+const userAuth = require("../middlewares/userAuth");
 
-const auth = require("../controllers/auth");
-const qr = require("../controllers/qr");
-const logout = require("../controllers/logout");
-const verification = require("../controllers/verification");
-const check = require("../controllers/check");
+const auth = require("../controllers/authController");
+const qr = require("../controllers/qrController");
+const logout = require("../controllers/logoutController");
+const verification = require("../controllers/verificationController");
+const check = require("../controllers/checkController");
 
 router.post("/create", auth.create);
 router.post("/login", auth.login);

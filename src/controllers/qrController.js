@@ -1,6 +1,6 @@
 const QRCode = require("../model/QRCode.js");
 const { v4: uuidv4 } = require("uuid");
-const { errorLog } = require("../adminSection/Logs.js");
+const { errorLog } = require("../services/admin/logs.js");
 
 exports.store = async (req, res) => {
   try {

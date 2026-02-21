@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const database = require("../database/firebaseConfig");
-const auth = require("../auth/UserAuth");
+const auth = require("../middlewares/userAuth");
 const {
   createNewProject,
   getProjectDetail,

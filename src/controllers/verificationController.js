@@ -1,6 +1,6 @@
 const User = require("../model/User.js");
 const VerificationLink = require("../model/VerificationLink.js");
-const validator = require("../Helper/Validator.js");
+const validator = require("../utils/validator.js");
 const freelyEmail = require("freely-email");
 const {
   appName,
@@ -8,8 +8,8 @@ const {
   appReplyEmail,
   appVerificationUrl,
 } = require("../config.js");
-const { errorLog } = require("../adminSection/Logs.js");
-const checkStringMessage = require("../Helper/StringHelper.js");
+const { errorLog } = require("../services/admin/logs.js");
+const checkStringMessage = require("../utils/stringHelper.js");
 
 const sendVerificationEmail = async (email) => {
   const user = await User.findOne({ email });

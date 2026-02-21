@@ -1,5 +1,5 @@
 const User = require("../model/User.js");
-const checkStringMessage = require("../Helper/StringHelper.js");
+const checkStringMessage = require("../utils/stringHelper.js");
 
 exports.login = async (req, res) => {
   res.status(200).send({ message: "true" });

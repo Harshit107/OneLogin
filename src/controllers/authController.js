@@ -1,8 +1,9 @@
 const User = require("../model/User.js");
-const validator = require("../Helper/Validator.js");
-const { errorLog, successLog } = require("../adminSection/Logs.js");
-const checkStringMessage = require("../Helper/StringHelper.js");
-const { sendVerificationEmail } = require("./verification.js");
+const validator = require("../utils/validator.js");
+const { errorLog, successLog } = require("../services/admin/logs.js");
+const checkStringMessage = require("../utils/stringHelper.js");
+const { sendVerificationEmail } = require("./verificationController.js");
+const { createSSOSession } = require("../services/oauth/tokenService");
 
 exports.create = async (req, res) => {
   let isUserCreated = false;
@@ -53,6 +54,14 @@ exports.login = async (req, res) => {
     const { email, password } = validator.userValidator(req.body);
     const user = await User.findByCredentails(email, password);
     const token = await user.generateToken();
+    const ssoSessionId = await createSSOSession(user._id);
+
+    res.cookie("sso_session", ssoSessionId, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // only secure in prod
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+
     successLog("User Logged In Successfully");
     res
       .status(200)

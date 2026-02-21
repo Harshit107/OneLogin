@@ -1,8 +1,8 @@
 const jwt = require("jsonwebtoken");
 const User = require("../model/User.js");
 require("dotenv").config();
-const checkStringMessage = require("../Helper/StringHelper.js");
-const {errorLog : showErrorMessage} = require("../adminSection/Logs.js");
+const checkStringMessage = require("../utils/stringHelper.js");
+const {errorLog : showErrorMessage} = require("../services/admin/logs.js");
 
 const userAuth = async (req, res, next) => {
   try {
