@@ -33,6 +33,10 @@ router.post(
 );
 router.get("/verification/email/:id", verification.verify);
 
+// Password Management
+router.post("/password/forgot", emailLimiter, verification.forgotPassword);
+router.post("/password/reset", authLimiter, verification.resetPassword);
+
 router.get("/check/login", userAuth, check.login);
 router.get("/isVerified", userAuth, check.isVerified);
 router.get("/profile", userAuth, check.profile);
