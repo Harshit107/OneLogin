@@ -3,10 +3,15 @@ const OAuthSession = require("../model/oauth/OAuthSession");
 
 const clearSSOSession = async (req, res) => {
   const sessionId = req.cookies && req.cookies.sso_session;
+  const isProd = process.env.NODE_ENV === "production" || (req.headers.host && req.headers.host.includes("harshit107.online"));
   if (sessionId) {
     await OAuthSession.deleteOne({ session_id: sessionId });
-    res.clearCookie("sso_session");
   }
+  res.clearCookie("sso_session", {
+    domain: isProd ? ".harshit107.online" : undefined,
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+  });
 };
 
 exports.current = catchAsync(async (req, res) => {

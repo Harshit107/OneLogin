@@ -45,8 +45,8 @@ exports.authorize = async (req, res) => {
       // User is not logged in. Redirect to SSO login page.
       // Append original query parameters so the frontend knows where to return after login.
       const queryParams = new URLSearchParams(req.query).toString();
-      // Assuming frontend login page is at origin/login (can be configured)
-      const loginUrl = process.env.SSO_LOGIN_URL || `http://localhost:3000/login`;
+      const frontendUrl = process.env.FRONTEND_URL || "https://account.harshit107.online";
+      const loginUrl = process.env.SSO_LOGIN_URL || `${frontendUrl}/auth`;
       return res.redirect(`${loginUrl}?${queryParams}`);
     }
 

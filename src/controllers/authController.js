@@ -23,10 +23,13 @@ exports.login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
   const { user, token, ssoSessionId } = await authService.loginUser(email, password);
 
+  const isProd = process.env.NODE_ENV === "production" || (req.headers.host && req.headers.host.includes("harshit107.online"));
+
   res.cookie("sso_session", ssoSessionId, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
+    secure: isProd,
+    sameSite: isProd ? "none" : "lax",
+    domain: isProd ? ".harshit107.online" : undefined,
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
   });
 
