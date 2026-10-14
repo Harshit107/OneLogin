@@ -9,6 +9,9 @@
 - **Microservice Ready**: Issues standard JWT Access Tokens for decoupled Backend-to-Backend authorization.
 - **Developer API**: Endpoints to manage Apps/Clients, Tokens, and Users.
 
+📖 **Detailed Documentation**: See [Architecture & Developer Guide](docs/ARCHITECTURE.md) for full endpoint specifications, database schemas, and known gotchas.
+🧠 **Code Intelligence**: Indexed with [CodeGraph](https://github.com/colbymchenry/codegraph) for fast context retrieval.
+
 ---
 
 ## 🏗️ Architecture & SSO Workflow
