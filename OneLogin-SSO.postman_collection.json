@@ -1,16 +1,540 @@
 {
   "info": {
-    "_postman_id": "ab123456-cd78-ef90-12ab-34567890cdef",
-    "name": "OneLogin SSO Server",
-    "description": "API Collection for testing the newly implemented OAuth2 Single Sign-On flow.",
+    "_postman_id": "7d9e48b1-3e0c-4e89-913a-49339e083c2e",
+    "name": "OneLogin SSO & Identity Platform",
+    "description": "Comprehensive Postman collection for OneLogin Centralized Single Sign-On (SSO) and OAuth 2.0 Identity Server.\n\nSupports:\n- User Registration, Login & Session Management\n- Account Recovery (Forgot / Reset Password)\n- Device Management & Multi-Session Revocation\n- QR Code Companion Login\n- Developer Projects & API Keys\n- OAuth 2.0 PKCE / Authorization Code Exchange, Refresh & UserInfo\n\nEnvironments:\n- Local: http://localhost:5000\n- Production: https://onelogin-api.harshit107.online",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
     {
-      "name": "1. Admin",
+      "name": "1. Server Health & Diagnostics",
       "item": [
         {
-          "name": "Register OAuth Client",
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/checkserver",
+              "host": ["{{base_url}}"],
+              "path": ["checkserver"]
+            },
+            "description": "Validates that the API server is online and operational."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Authentication & Identity",
+      "item": [
+        {
+          "name": "Create Account (Register)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "    pm.collectionVariables.set('user_token', res.token);",
+                  "}",
+                  "if (res.userId || (res.user && res.user._id)) {",
+                  "    pm.collectionVariables.set('user_id', res.userId || res.user._id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Harshit Developer\",\n  \"email\": \"developer@example.com\",\n  \"password\": \"Password123!\",\n  \"phone\": 9876543210\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/create",
+              "host": ["{{base_url}}"],
+              "path": ["users", "create"]
+            },
+            "description": "Registers a new user account and returns an initial JWT authentication token."
+          }
+        },
+        {
+          "name": "User Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.token) {",
+                  "    pm.collectionVariables.set('user_token', res.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"developer@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/login",
+              "host": ["{{base_url}}"],
+              "path": ["users", "login"]
+            },
+            "description": "Authenticates user credentials, issues a JWT token in response body, and sets the HTTP-Only `sso_session` cookie for cross-subdomain SSO."
+          }
+        },
+        {
+          "name": "Check Login Session",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/check/login",
+              "host": ["{{base_url}}"],
+              "path": ["users", "check", "login"]
+            },
+            "description": "Validates whether the active JWT token is recognized by the server."
+          }
+        },
+        {
+          "name": "Get Authenticated Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/profile",
+              "host": ["{{base_url}}"],
+              "path": ["users", "profile"]
+            },
+            "description": "Retrieves the current authenticated user's profile and active session list."
+          }
+        },
+        {
+          "name": "Check Verification Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/isVerified",
+              "host": ["{{base_url}}"],
+              "path": ["users", "isVerified"]
+            },
+            "description": "Checks if the logged-in user has verified their email address."
+          }
+        },
+        {
+          "name": "Request Verification Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"developer@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/verification/email",
+              "host": ["{{base_url}}"],
+              "path": ["users", "verification", "email"]
+            },
+            "description": "Dispatches an account verification email link to the user."
+          }
+        },
+        {
+          "name": "Verify Email with Token ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/verification/email/:id",
+              "host": ["{{base_url}}"],
+              "path": ["users", "verification", "email", ":id"],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "verification_token_id"
+                }
+              ]
+            },
+            "description": "Verifies an email using the token ID received in email."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Password Management",
+      "item": [
+        {
+          "name": "Forgot Password (Request Reset)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data && res.data.resetToken) {",
+                  "    pm.collectionVariables.set('reset_token', res.data.resetToken);",
+                  "} else if (res.resetToken) {",
+                  "    pm.collectionVariables.set('reset_token', res.resetToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"developer@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/password/forgot",
+              "host": ["{{base_url}}"],
+              "path": ["users", "password", "forgot"]
+            },
+            "description": "Triggers password recovery email and returns a resetToken for client use in non-production environments."
+          }
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{reset_token}}\",\n  \"newPassword\": \"NewSecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/password/reset",
+              "host": ["{{base_url}}"],
+              "path": ["users", "password", "reset"]
+            },
+            "description": "Applies a new password using the validated reset token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Session Revocation & Logout",
+      "item": [
+        {
+          "name": "Logout Current Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/logout",
+              "host": ["{{base_url}}"],
+              "path": ["users", "logout"]
+            },
+            "description": "Logs out the current device, revokes the active JWT token, and clears the `sso_session` cookie."
+          }
+        },
+        {
+          "name": "Logout All Sessions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/logout/all",
+              "host": ["{{base_url}}"],
+              "path": ["users", "logout", "all"]
+            },
+            "description": "Revokes all tokens across all devices for the authenticated user."
+          }
+        },
+        {
+          "name": "Logout All Except Current",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/logout/all/current",
+              "host": ["{{base_url}}"],
+              "path": ["users", "logout", "all", "current"]
+            },
+            "description": "Terminates all sessions on other devices while keeping the current session alive."
+          }
+        },
+        {
+          "name": "Logout Specific Device",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"tokenId\": \"specific_token_mongo_id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/logout/device",
+              "host": ["{{base_url}}"],
+              "path": ["users", "logout", "device"]
+            },
+            "description": "Revokes a specific session token by its internal token record ID."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. QR Code Companion Login",
+      "item": [
+        {
+          "name": "Generate QR Code Session",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.message) {",
+                  "    pm.collectionVariables.set('qr_code', res.message);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/users/login/qr/store",
+              "host": ["{{base_url}}"],
+              "path": ["users", "login", "qr", "store"]
+            },
+            "description": "Creates a temporary QR code session code for device pairing."
+          }
+        },
+        {
+          "name": "Authorize QR Code (from mobile/logged-in app)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{qr_code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/login/qr/storetoken",
+              "host": ["{{base_url}}"],
+              "path": ["users", "login", "qr", "storetoken"]
+            },
+            "description": "Links the user's active session token to the pending QR code session."
+          }
+        },
+        {
+          "name": "Poll / Validate QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{qr_code}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/login/qr/validate",
+              "host": ["{{base_url}}"],
+              "path": ["users", "login", "qr", "validate"]
+            },
+            "description": "Polled by the desktop browser to check if the QR code was scanned and approved."
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Developer Projects & Keys",
+      "item": [
+        {
+          "name": "Create Developer Project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"My SaaS Platform\",\n  \"description\": \"Single Sign-On client integration for external SaaS app.\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/developer/project/create",
+              "host": ["{{base_url}}"],
+              "path": ["developer", "project", "create"]
+            },
+            "description": "Provisions a developer project and issues an API Secret Key for server-to-server integration."
+          }
+        },
+        {
+          "name": "Get Project Details",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"project_id_here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/developer/project/get",
+              "host": ["{{base_url}}"],
+              "path": ["developer", "project", "get"]
+            },
+            "description": "Retrieves API keys, webhooks, and settings for a developer project."
+          }
+        },
+        {
+          "name": "Update Project Settings",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{user_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"projectId\": \"project_id_here\",\n  \"name\": \"Updated SaaS Platform\",\n  \"description\": \"Updated description\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/developer/project/update/general",
+              "host": ["{{base_url}}"],
+              "path": ["developer", "project", "update", "general"]
+            },
+            "description": "Updates general project information."
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. OAuth 2.0 & Cross-Domain SSO",
+      "item": [
+        {
+          "name": "Admin: Register OAuth Client",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "const client = res.data || res;",
+                  "if (client.client_id) {",
+                  "    pm.collectionVariables.set('client_id', client.client_id);",
+                  "}",
+                  "if (client.client_secret) {",
+                  "    pm.collectionVariables.set('client_secret', client.client_secret);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -20,29 +544,71 @@
               },
               {
                 "key": "x-admin-secret",
-                "value": "super_secret_admin_key"
+                "value": "{{admin_secret}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"app_name\": \"My Client App\",\n  \"redirect_uris\": [\"http://localhost:3000/callback\"],\n  \"allowed_scopes\": [\"read_user\"]\n}"
+              "raw": "{\n  \"app_name\": \"Harshit 1 Portal\",\n  \"redirect_uris\": [\n    \"http://localhost:3000/callback\",\n    \"https://harshit1.com/callback\"\n  ],\n  \"allowed_scopes\": [\"read_user\", \"profile\", \"email\"]\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/oauth/register-client",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "5000",
+              "raw": "{{base_url}}/oauth/register-client",
+              "host": ["{{base_url}}"],
               "path": ["oauth", "register-client"]
-            }
+            },
+            "description": "Admin endpoint to register a third-party or sibling OAuth 2.0 client app."
           }
-        }
-      ]
-    },
-    {
-      "name": "2. Main Authentication",
-      "item": [
+        },
         {
-          "name": "Login (Creates SSO Session Cookie)",
+          "name": "Authorize (Browser Redirect Simulation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/oauth/authorize?response_type=code&client_id={{client_id}}&redirect_uri=http://localhost:3000/callback&scope=read_user",
+              "host": ["{{base_url}}"],
+              "path": ["oauth", "authorize"],
+              "query": [
+                {
+                  "key": "response_type",
+                  "value": "code"
+                },
+                {
+                  "key": "client_id",
+                  "value": "{{client_id}}"
+                },
+                {
+                  "key": "redirect_uri",
+                  "value": "http://localhost:3000/callback"
+                },
+                {
+                  "key": "scope",
+                  "value": "read_user"
+                }
+              ]
+            },
+            "description": "Simulates browser navigating to OneLogin authorization page. If `sso_session` cookie exists, automatically issues authorization code."
+          }
+        },
+        {
+          "name": "Exchange Auth Code for Tokens",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.collectionVariables.set('access_token', res.access_token);",
+                  "}",
+                  "if (res.refresh_token) {",
+                  "    pm.collectionVariables.set('refresh_token', res.refresh_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -53,84 +619,54 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"user@example.com\",\n  \"password\": \"mypassword123\"\n}"
-            },
-            "url": {
-              "raw": "http://localhost:5000/users/login",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "5000",
-              "path": ["users", "login"]
-            }
-          }
-        },
-        {
-          "name": "Authorize (Browser Redirect Simulation)",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "http://localhost:5000/oauth/authorize?response_type=code&client_id={{client_id}}&redirect_uri=http://localhost:3000/callback&scope=read_user",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "5000",
-              "path": ["oauth", "authorize"],
-              "query": [
-                { "key": "response_type", "value": "code" },
-                { "key": "client_id", "value": "{{client_id}}", "description": "Replace with the client_id obtained from Register OAuth Client" },
-                { "key": "redirect_uri", "value": "http://localhost:3000/callback" },
-                { "key": "scope", "value": "read_user" }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "3. OAuth Token Management",
-      "item": [
-        {
-          "name": "Exchange Auth Code for Tokens",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
-            "body": {
-              "mode": "raw",
               "raw": "{\n  \"grant_type\": \"authorization_code\",\n  \"client_id\": \"{{client_id}}\",\n  \"client_secret\": \"{{client_secret}}\",\n  \"redirect_uri\": \"http://localhost:3000/callback\",\n  \"code\": \"{{auth_code}}\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/oauth/token",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "5000",
+              "raw": "{{base_url}}/oauth/token",
+              "host": ["{{base_url}}"],
               "path": ["oauth", "token"]
-            }
+            },
+            "description": "Exchanges an authorization code for an OAuth Access Token and Refresh Token."
           }
         },
         {
-          "name": "Refresh Token",
+          "name": "Refresh Access Token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.access_token) {",
+                  "    pm.collectionVariables.set('access_token', res.access_token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"grant_type\": \"refresh_token\",\n  \"client_id\": \"{{client_id}}\",\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/oauth/token",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "5000",
+              "raw": "{{base_url}}/oauth/token",
+              "host": ["{{base_url}}"],
               "path": ["oauth", "token"]
-            }
+            },
+            "description": "Uses an existing refresh token to obtain a fresh access token without re-authenticating."
           }
         },
         {
-          "name": "Get User Info (Protected)",
+          "name": "Get OAuth User Info",
           "request": {
             "method": "GET",
             "header": [
@@ -140,42 +676,93 @@
               }
             ],
             "url": {
-              "raw": "http://localhost:5000/oauth/userinfo",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "5000",
+              "raw": "{{base_url}}/oauth/userinfo",
+              "host": ["{{base_url}}"],
               "path": ["oauth", "userinfo"]
-            }
+            },
+            "description": "Protected OpenID/OAuth2 userinfo endpoint returning user profile claims using the OAuth Access Token."
           }
         },
         {
-          "name": "Revoke Token",
+          "name": "Revoke OAuth Token",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
             ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"token\": \"{{access_token}}\",\n  \"token_type_hint\": \"access_token\"\n}"
             },
             "url": {
-              "raw": "http://localhost:5000/oauth/revoke-token",
-              "protocol": "http",
-              "host": ["localhost"],
-              "port": "5000",
+              "raw": "{{base_url}}/oauth/revoke-token",
+              "host": ["{{base_url}}"],
               "path": ["oauth", "revoke-token"]
-            }
+            },
+            "description": "Revokes an access or refresh token (RFC 7009)."
           }
         }
       ]
     }
   ],
   "variable": [
-    { "key": "client_id", "value": "REPLACE_ME" },
-    { "key": "client_secret", "value": "REPLACE_ME" },
-    { "key": "auth_code", "value": "REPLACE_ME" },
-    { "key": "access_token", "value": "REPLACE_ME" },
-    { "key": "refresh_token", "value": "REPLACE_ME" }
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "admin_secret",
+      "value": "super_secret_admin_key",
+      "type": "string"
+    },
+    {
+      "key": "user_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "client_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "client_secret",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "auth_code",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refresh_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "qr_code",
+      "value": "",
+      "type": "string"
+    }
   ]
 }
