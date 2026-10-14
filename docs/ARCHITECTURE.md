@@ -139,14 +139,21 @@ Used for developer project configuration:
 
 ---
 
-## 6. Known Code Issues & Action Items
+## 6. Security Hardening & Implemented Protections
 
-| Issue | Location | Details & Fix |
+The codebase has undergone defensive hardening with the following protections in place:
+
+| Protection / Fix | Implementation | Details |
 |---|---|---|
-| **Typo in static method name** | `src/model/User.js:71` | Declared as `userSchema.statics.findByCredentails` (extra 'a'). In `authService.js:22` it is called as `User.findByCredentials`. Causes `TypeError: User.findByCredentials is not a function` during login. |
-| **Missing Module** | `src/middlewares/userAuth.js:4` | Requires `../utils/stringHelper.js` which does not exist in the codebase. Throws `MODULE_NOT_FOUND` on auth errors. |
-| **Env Variable Casing** | `.env:4` | Defined as `jwt=...` (lowercase), but code expects `process.env.JWT`. On Linux / Docker containers, this results in `undefined`. |
-| **Committed Secret Key** | `src/database/admin-key-onelogin.json` | Contains raw Google service account credentials for Firebase. Should be moved to git-ignored configuration or environment variables. |
+| **OAuth 2.0 PKCE (RFC 7636)** | `OAuthAuthCode.js`, `oauthController.js`, `tokenService.js` | Supports `code_challenge`, `code_challenge_method=S256`, and verifies `code_verifier` during token exchange. |
+| **Rate Limiting** | `src/middlewares/rateLimiter.js` | Applied to `/users/login` (15/15m), `/oauth/token` (15/15m), `/users/verification/email` (5/15m), and `/users/login/qr/validate` (60/m). |
+| **SSO Session Revocation** | `src/controllers/logoutController.js` | Deletes `OAuthSession` records from MongoDB and clears `sso_session` cookie upon logout. |
+| **Cookie Hardening** | `src/controllers/authController.js` | Configures `sameSite: "lax"`, `httpOnly: true`, and conditional `secure` on the `sso_session` cookie. |
+| **Admin Secret Timing Protection** | `src/controllers/oauth/oauthController.js` | Uses `crypto.timingSafeEqual` and disallows weak fallbacks in production. |
+| **QR Code Expiration TTL** | `src/model/QRCode.js`, `src/controllers/qrController.js` | Enforces 2-minute expiration with MongoDB TTL indexes and controller checks. |
+| **Cryptographic Email Tokens** | `src/model/VerificationLink.js`, `src/controllers/verificationController.js` | Uses 32-byte crypto random tokens with a 24-hour expiration TTL index. |
+| **Firebase Credential Fallback** | `src/database/firebaseConfig.js`, `FirebaseHelper.js` | Supports `FIREBASE_SERVICE_ACCOUNT` via env and guards uninitialized database calls. |
+| **Resolved Runtime Bugs** | `User.js`, `userAuth.js`, `stringHelper.js` | Fixed `findByCredentials` method typo, implemented missing `stringHelper`, and normalized `JWT` env casing. |
 
 ---
 

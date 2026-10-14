@@ -11,12 +11,14 @@ const logout = require("../controllers/logoutController");
 const verification = require("../controllers/verificationController");
 const check = require("../controllers/checkController");
 
-router.post("/create", validate(authValidation.register), auth.create);
-router.post("/login", validate(authValidation.login), auth.login);
+const { authLimiter, emailLimiter, qrPollLimiter } = require("../middlewares/rateLimiter");
+
+router.post("/create", authLimiter, validate(authValidation.register), auth.create);
+router.post("/login", authLimiter, validate(authValidation.login), auth.login);
 
 router.post("/login/qr/store", qr.store);
 router.post("/login/qr/storetoken", userAuth, qr.storeToken);
-router.post("/login/qr/validate", qr.validate);
+router.post("/login/qr/validate", qrPollLimiter, qr.validate);
 
 router.post("/logout", userAuth, logout.current);
 router.post("/logout/all", userAuth, logout.all);
@@ -25,6 +27,7 @@ router.post("/logout/device", userAuth, logout.device);
 
 router.post(
   "/verification/email", 
+  emailLimiter,
   validate(authValidation.emailOnly), 
   verification.sendEmail
 );

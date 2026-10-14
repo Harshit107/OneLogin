@@ -10,13 +10,16 @@ const {
   appVerificationUrl,
 } = require("../config.js");
 
+const crypto = require("crypto");
+
 const sendVerificationEmail = async (email) => {
   const user = await User.findOne({ email });
   if (!user) {
     throw new ApiError(404, "User is not registered with us");
   }
 
-  const link = new VerificationLink({ email });
+  const token = crypto.randomBytes(32).toString("hex");
+  const link = new VerificationLink({ email, token });
   await link.save();
 
   await freelyEmail.sendLink({
@@ -25,7 +28,7 @@ const sendVerificationEmail = async (email) => {
     sender: appEmail,
     replyTo: appReplyEmail,
     subject: "Email Verification",
-    link: appVerificationUrl + link._id,
+    link: appVerificationUrl + token,
   });
 };
 
@@ -36,10 +39,20 @@ exports.sendEmail = catchAsync(async (req, res) => {
 });
 
 exports.verify = catchAsync(async (req, res) => {
-  const verificationUserLink = await VerificationLink.findById(req.params.id);
+  const identifier = req.params.id;
+  // Look up by random token, or fallback to _id if legacy link
+  let verificationUserLink = await VerificationLink.findOne({ token: identifier });
+  if (!verificationUserLink && identifier.match(/^[0-9a-fA-F]{24}$/)) {
+    verificationUserLink = await VerificationLink.findById(identifier);
+  }
   
   if (!verificationUserLink) {
-    throw new ApiError(400, "Invalid verification link");
+    throw new ApiError(400, "Invalid or expired verification link");
+  }
+
+  if (verificationUserLink.expiresAt && verificationUserLink.expiresAt < new Date()) {
+    await VerificationLink.deleteOne({ _id: verificationUserLink._id });
+    throw new ApiError(400, "Verification link has expired");
   }
 
   const user = await User.findOne({ email: verificationUserLink.email });
@@ -48,7 +61,7 @@ exports.verify = catchAsync(async (req, res) => {
     await user.save();
   }
 
-  await VerificationLink.findByIdAndDelete(req.params.id);
+  await VerificationLink.deleteOne({ _id: verificationUserLink._id });
   res.status(200).json({ msg: "Email Verification Successfully" });
 });
 

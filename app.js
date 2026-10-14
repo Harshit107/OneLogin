@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 require("./src/database/mongoose");
 const userRouter = require("./src/routes/authRoutes.js");
 const testingRouter = require("./src/routes/testingRoutes.js");
@@ -10,6 +11,18 @@ const errorHandler = require("./src/middlewares/errorHandler");
 const PORT = process.env.PORT || 5000;
 
 const app = express();
+
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    process.env.FRONTEND_URL
+  ].filter(Boolean),
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-admin-secret"]
+}));
+
 app.use(express.json());
 app.use(cookieParser());
 

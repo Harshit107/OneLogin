@@ -14,8 +14,8 @@ exports.storeToken = catchAsync(async (req, res) => {
   const { code } = req.body;
   const qrCodeResult = await QRCode.findOne({ code });
 
-  if (!qrCodeResult || qrCodeResult.token) {
-    throw new ApiError(400, "Invalid QR-Code");
+  if (!qrCodeResult || (qrCodeResult.expiresAt && qrCodeResult.expiresAt < new Date()) || qrCodeResult.token) {
+    throw new ApiError(400, "Invalid or expired QR code");
   }
 
   const newTokenForNewDevice = await req.user.generateToken();
@@ -29,7 +29,11 @@ exports.validate = catchAsync(async (req, res) => {
   const { code } = req.body;
   const qrCodeResult = await QRCode.findOne({ code });
 
-  if (!qrCodeResult || !qrCodeResult.token) {
+  if (!qrCodeResult || (qrCodeResult.expiresAt && qrCodeResult.expiresAt < new Date())) {
+    throw new ApiError(400, "QR code expired or invalid");
+  }
+
+  if (!qrCodeResult.token) {
     throw new ApiError(400, "Waiting for user to scan QR code");
   }
 

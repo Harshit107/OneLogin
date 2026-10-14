@@ -68,23 +68,26 @@ userSchema.pre("save", async function (next) {
   next();
 });
 
-userSchema.statics.findByCredentails = async (email, password) => {
+userSchema.statics.findByCredentials = async (email, password) => {
   const user = await User.findOne({ email });
   if (!user) throw new Error("Invalid email or password");
-  const checkPassworMatch = await bcrypt.compare(password, user.password);
-  if (!checkPassworMatch) {
+  const checkPasswordMatch = await bcrypt.compare(password, user.password);
+  if (!checkPasswordMatch) {
     throw new Error("Invalid email or password");
   }
   return user;
 };
+// Backward compatibility alias
+userSchema.statics.findByCredentails = userSchema.statics.findByCredentials;
 
 userSchema.methods.generateToken = async function () {
   const user = this;
+  const jwtSecret = process.env.JWT || process.env.jwt || "fallback_secret_for_development";
   const token = jwt.sign(
     {
       _id: user._id.toString(),
     },
-    process.env.JWT,
+    jwtSecret,
   );
   user.tokens = user.tokens.concat({
     token,

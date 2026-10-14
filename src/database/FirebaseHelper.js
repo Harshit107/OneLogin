@@ -8,14 +8,21 @@ const {
   getProjectsRef,
 } = require("./FirebaseRef");
 
+const getDb = () => {
+  if (!database) {
+    throw new Error("Firebase Realtime Database is not configured. Please supply valid credentials.");
+  }
+  return database;
+};
+
 const createDeveloper = async (developerId) => {
   try {
-    const developerDBRef = database.ref(createDeveloperRef(developerId));
+    const developerDBRef = getDb().ref(createDeveloperRef(developerId));
     const messageKey = await developerDBRef.push().key;
     await developerDBRef.set(messageKey);
     return messageKey;
   } catch (e) {
-    throw new Error(e);
+    throw new Error(e.message || e);
   }
 };
 
@@ -25,7 +32,7 @@ const createDeveloper = async (developerId) => {
 
 const createNewProject = async (developerId, name) => {
   try {
-    const projectDBRef = database.ref(createProjectsRef(developerId));
+    const projectDBRef = getDb().ref(createProjectsRef(developerId));
     const messageKey = projectDBRef.push().key;
     const projectDetails = {
       api: messageKey,
@@ -38,7 +45,7 @@ const createNewProject = async (developerId, name) => {
     await projectDBRef.child(messageKey).child("details").set(projectDetails);
     return messageKey;
   } catch (e) {
-    throw new Error(e);
+    throw new Error(e.message || e);
   }
 };
 
@@ -47,14 +54,14 @@ const createNewProject = async (developerId, name) => {
 /* -------------------------------------------------------------------------- */
 const getProjectDetail = async (developerId, projectId) => {
   try {
-    const projectDBRef = database.ref(getProjectsRef(developerId, projectId));
+    const projectDBRef = getDb().ref(getProjectsRef(developerId, projectId));
     let dataSnapshot = await projectDBRef.child("details").once("value");
     dataSnapshot = dataSnapshot.val();
     if (!dataSnapshot || dataSnapshot == null)
       throw new Error("Couldn't find project");
     return dataSnapshot;
   } catch (e) {
-    throw new Error(e);
+    throw new Error(e.message || e);
   }
 };
 
@@ -63,13 +70,13 @@ const getProjectDetail = async (developerId, projectId) => {
 /* -------------------------------------------------------------------------- */
 const updateProjectDetail = async (developerId, projectId, itemToSet) => {
   try {
-    const projectDBRef = database.ref(getProjectsRef(developerId, projectId));
+    const projectDBRef = getDb().ref(getProjectsRef(developerId, projectId));
     const updatedValue = await projectDBRef
       .child("details")
       .update({ ...itemToSet });
     return updatedValue;
   } catch (e) {
-    throw new Error(e);
+    throw new Error(e.message || e);
   }
 };
 

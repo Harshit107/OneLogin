@@ -12,7 +12,7 @@ const tokenService = require("../../services/oauth/tokenService");
  */
 exports.authorize = async (req, res) => {
   try {
-    const { client_id, redirect_uri, response_type, state, scope } = req.query;
+    const { client_id, redirect_uri, response_type, state, scope, code_challenge, code_challenge_method } = req.query;
 
     if (!client_id || !redirect_uri || response_type !== "code") {
       return res.status(400).json({ error: "invalid_request", message: "Missing required parameters or unsupported response_type" });
@@ -50,8 +50,12 @@ exports.authorize = async (req, res) => {
       return res.redirect(`${loginUrl}?${queryParams}`);
     }
 
-    // User is logged in. Generate Authorization Code.
-    const code = await tokenService.generateAuthCode(userId, client_id, redirect_uri);
+    // User is logged in. Generate Authorization Code with PKCE and scope.
+    const code = await tokenService.generateAuthCode(userId, client_id, redirect_uri, {
+      code_challenge,
+      code_challenge_method,
+      scope,
+    });
 
     // Redirect to Client Callback
     const redirectUrl = new URL(redirect_uri);
@@ -74,7 +78,7 @@ exports.authorize = async (req, res) => {
  */
 exports.token = async (req, res) => {
   try {
-    const { client_id, client_secret, grant_type, code, redirect_uri, refresh_token } = req.body;
+    const { client_id, client_secret, grant_type, code, redirect_uri, refresh_token, code_verifier } = req.body;
 
     // Validate Client Credentials
     if (!client_id || !client_secret) {
@@ -108,17 +112,30 @@ exports.token = async (req, res) => {
          return res.status(400).json({ error: "invalid_grant", message: "Redirect URI mismatch" });
       }
 
+      // PKCE verification (RFC 7636)
+      if (authCode.code_challenge) {
+        const isPKCEValid = tokenService.verifyPKCE(
+          code_verifier,
+          authCode.code_challenge,
+          authCode.code_challenge_method
+        );
+        if (!isPKCEValid) {
+          return res.status(400).json({ error: "invalid_grant", message: "PKCE verification failed" });
+        }
+      }
+
       // Mark the code as used to prevent replay attacks
       authCode.used = true;
       await authCode.save();
 
       // Issue tokens
-      const tokenResponse = await tokenService.generateTokens(authCode.user_id, client_id);
+      const tokenResponse = await tokenService.generateTokens(authCode.user_id, client_id, authCode.scope);
       return res.status(200).json({
         access_token: tokenResponse.access_token,
         token_type: "Bearer",
         expires_in: tokenResponse.expires_in,
-        refresh_token: tokenResponse.refresh_token
+        refresh_token: tokenResponse.refresh_token,
+        scope: authCode.scope
       });
 
     } else if (grant_type === "refresh_token") {
@@ -214,19 +231,38 @@ exports.revokeToken = async (req, res) => {
  * @route POST /oauth/register-client
  * @desc Admin only: create new OAuth clients
  */
+const crypto = require("crypto");
+
+const safeCompare = (a, b) => {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+};
+
 exports.registerClient = async (req, res) => {
   try {
-    // Basic shared secret check for admin authorization (can be improved)
     const adminSecret = req.headers["x-admin-secret"];
-    if (adminSecret !== (process.env.ADMIN_SECRET || "super_secret_admin_key")) {
-      return res.status(403).json({ error: "unauthorized" });
+    const expectedSecret = process.env.ADMIN_SECRET || (process.env.NODE_ENV !== "production" ? "super_secret_admin_key" : null);
+
+    if (!expectedSecret || !adminSecret || !safeCompare(adminSecret, expectedSecret)) {
+      return res.status(403).json({ error: "unauthorized", message: "Invalid or missing admin credentials" });
     }
 
     const { app_name, redirect_uris, allowed_scopes } = req.body;
-    
+
+    if (!app_name || typeof app_name !== "string") {
+      return res.status(400).json({ error: "invalid_request", message: "app_name is required" });
+    }
+
+    if (!Array.isArray(redirect_uris) || redirect_uris.length === 0) {
+      return res.status(400).json({ error: "invalid_request", message: "redirect_uris must be a non-empty array" });
+    }
+
     // Generate credentials
-    const client_id = require("crypto").randomBytes(12).toString("hex");
-    const client_secret = require("crypto").randomBytes(24).toString("hex"); // Plain secret returned once
+    const client_id = crypto.randomBytes(12).toString("hex");
+    const client_secret = crypto.randomBytes(24).toString("hex"); // Plain secret returned once
 
     const client = new OAuthClient({
       client_id,

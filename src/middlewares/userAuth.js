@@ -6,28 +6,35 @@ const {errorLog : showErrorMessage} = require("../services/admin/logs.js");
 
 const userAuth = async (req, res, next) => {
   try {
-    // console.log(req.header("Authorization"));
-    const token = req.header("Authorization").replace("Bearer ","");
-    if(!token || token == null)
-       throw new Error("Authentication required" );
+    const authHeader = req.header("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
 
-    const decode = jwt.verify(token, process.env.JWT);
+    const token = authHeader.replace("Bearer ", "").trim();
+    if (!token) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+
+    const jwtSecret = process.env.JWT || process.env.jwt || "fallback_secret_for_development";
+    const decode = jwt.verify(token, jwtSecret);
     const user = await User.findOne({ _id: decode._id, "tokens.token": token });
 
-    if (!user)
-      return res.status(401).send({ error: "Authentication Required" });
+    if (!user) {
+      return res.status(401).json({ error: "Authentication Required" });
+    }
 
-    if (!user.isVerified)
-      return res.status(403).send({ error: "Email is Not Verified"});
+    if (!user.isVerified) {
+      return res.status(403).json({ error: "Email is Not Verified" });
+    }
 
     req.user = user;
     req.token = token;
 
     next();
-
   } catch (error) {
-    showErrorMessage("Message from UserAuth catch: " + error.message)
-    return res.status(400).send({ error: checkStringMessage(error.message) });
+    showErrorMessage("Message from UserAuth catch: " + error.message);
+    return res.status(401).json({ error: checkStringMessage(error.message) });
   }
 };
 module.exports = userAuth;

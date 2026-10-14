@@ -24,14 +24,35 @@
 
 const admin = require("firebase-admin");
 
-const serviceAccount = require("./admin-key-onelogin.json"); // Replace with the path to your service account key JSON file
+let serviceAccount = null;
 
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
-  // databaseURL: "https://harshit107-file-ecosystem-default-rtdb.firebaseio.com/", // Replace with your Firebase database URL
-  databaseURL:
-    "https://onelog-in-default-rtdb.asia-southeast1.firebasedatabase.app/", // Replace with your Firebase database URL
-});
-const db = admin.database();
+if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  } catch (e) {
+    try {
+      serviceAccount = require(process.env.FIREBASE_SERVICE_ACCOUNT);
+    } catch (err) {
+      console.warn("Failed to load FIREBASE_SERVICE_ACCOUNT from path:", err.message);
+    }
+  }
+} else {
+  try {
+    serviceAccount = require("./admin-key-onelogin.json");
+  } catch (e) {
+    console.warn("Warning: admin-key-onelogin.json not found and FIREBASE_SERVICE_ACCOUNT not set.");
+  }
+}
+
+if (serviceAccount && !admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    databaseURL:
+      process.env.FIREBASE_DATABASE_URL ||
+      "https://onelog-in-default-rtdb.asia-southeast1.firebasedatabase.app/",
+  });
+}
+
+const db = admin.apps.length ? admin.database() : null;
 
 module.exports = db;

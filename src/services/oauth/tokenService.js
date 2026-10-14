@@ -14,9 +14,22 @@ const generateRandomString = (length = 32) => {
 };
 
 /**
+ * Verify PKCE code_verifier against code_challenge
+ */
+exports.verifyPKCE = (verifier, challenge, method = "S256") => {
+  if (!verifier || !challenge) return false;
+  if (method === "plain") {
+    return verifier === challenge;
+  }
+  // S256: BASE64URL-ENCODE(SHA256(ASCII(code_verifier)))
+  const hash = crypto.createHash("sha256").update(verifier).digest("base64url");
+  return hash === challenge;
+};
+
+/**
  * Generate an Authorization Code
  */
-exports.generateAuthCode = async (user_id, client_id, redirect_uri) => {
+exports.generateAuthCode = async (user_id, client_id, redirect_uri, options = {}) => {
   const code = generateRandomString(16);
   // Code expires in 60 seconds
   const expires_at = new Date(Date.now() + 60 * 1000); 
@@ -27,6 +40,9 @@ exports.generateAuthCode = async (user_id, client_id, redirect_uri) => {
     client_id,
     redirect_uri,
     expires_at,
+    code_challenge: options.code_challenge || null,
+    code_challenge_method: options.code_challenge_method || "S256",
+    scope: options.scope || "read_user",
   });
 
   await authCode.save();
@@ -36,15 +52,16 @@ exports.generateAuthCode = async (user_id, client_id, redirect_uri) => {
 /**
  * Generate Access and Refresh Tokens
  */
-exports.generateTokens = async (user_id, client_id) => {
+exports.generateTokens = async (user_id, client_id, scope = "read_user") => {
+  const jwtSecret = process.env.JWT || process.env.jwt || "fallback_secret_for_development";
   // Access Token: JWT expiring in 15 minutes
   const access_token = jwt.sign(
     {
       user_id: user_id.toString(),
       client_id,
-      scope: "read_user", // Default scope
+      scope,
     },
-    JWT_SECRET,
+    jwtSecret,
     { expiresIn: "15m" }
   );
 
