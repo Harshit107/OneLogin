@@ -2,16 +2,13 @@ const User = require("../model/User.js");
 const VerificationLink = require("../model/VerificationLink.js");
 const catchAsync = require("../utils/catchAsync.js");
 const ApiError = require("../utils/ApiError.js");
-const freelyEmail = require("freely-email");
-const {
-  appName,
-  appEmail,
-  appReplyEmail,
-  appVerificationUrl,
-} = require("../config.js");
-
 const crypto = require("crypto");
+const freelyEmailService = require("../services/email/freelyEmailService");
+const { errorLog, successLog } = require("../services/admin/logs");
 
+/**
+ * Dispatches account email verification link via FreelyEmail live server.
+ */
 const sendVerificationEmail = async (email) => {
   const user = await User.findOne({ email });
   if (!user) {
@@ -22,22 +19,35 @@ const sendVerificationEmail = async (email) => {
   const link = new VerificationLink({ email, token });
   await link.save();
 
-  await freelyEmail.sendLink({
-    app: appName,
-    recipient: email,
-    sender: appEmail,
-    replyTo: appReplyEmail,
-    subject: "Email Verification",
-    link: appVerificationUrl + token,
-  });
+  // Asynchronously dispatch via live FreelyEmail service without blocking
+  freelyEmailService
+    .sendVerificationLink(email, token)
+    .then(() => successLog(`Verification email dispatched to ${email}`))
+    .catch((err) =>
+      errorLog(`Failed to dispatch verification email via FreelyEmail: ${err.message}`)
+    );
+
+  return token;
 };
 
+/**
+ * POST /users/verification/email
+ * Manual trigger from user profile to re-send verification email
+ */
 exports.sendEmail = catchAsync(async (req, res) => {
   const { email } = req.body;
+  if (!email) {
+    throw new ApiError(400, "Email address is required");
+  }
+
   await sendVerificationEmail(email);
-  res.status(200).json({ msg: "Email Sent Successfully" });
+  res.status(200).json({ msg: "Verification email sent successfully" });
 });
 
+/**
+ * GET /users/verification/email/:id
+ * Confirms user verification token
+ */
 exports.verify = catchAsync(async (req, res) => {
   const identifier = req.params.id;
   // Look up by random token, or fallback to _id if legacy link
@@ -45,26 +55,35 @@ exports.verify = catchAsync(async (req, res) => {
   if (!verificationUserLink && identifier.match(/^[0-9a-fA-F]{24}$/)) {
     verificationUserLink = await VerificationLink.findById(identifier);
   }
-  
+
   if (!verificationUserLink) {
     throw new ApiError(400, "Invalid or expired verification link");
   }
 
   if (verificationUserLink.expiresAt && verificationUserLink.expiresAt < new Date()) {
     await VerificationLink.deleteOne({ _id: verificationUserLink._id });
-    throw new ApiError(400, "Verification link has expired");
+    throw new ApiError(400, "Verification link has expired. Please request a new one.");
   }
 
   const user = await User.findOne({ email: verificationUserLink.email });
   if (user) {
     user.isVerified = true;
     await user.save();
+
+    // Send Welcome Email asynchronously
+    freelyEmailService
+      .sendWelcomeEmail(user.email, user.name)
+      .catch((err) => errorLog(`Failed to dispatch welcome email: ${err.message}`));
   }
 
   await VerificationLink.deleteOne({ _id: verificationUserLink._id });
-  res.status(200).json({ msg: "Email Verification Successfully" });
+  res.status(200).json({ msg: "Email verified successfully" });
 });
 
+/**
+ * POST /users/password/forgot
+ * Initiates password recovery flow via FreelyEmail live server
+ */
 exports.forgotPassword = catchAsync(async (req, res) => {
   const { email } = req.body;
   if (!email) {
@@ -80,27 +99,24 @@ exports.forgotPassword = catchAsync(async (req, res) => {
   const link = new VerificationLink({ email, token });
   await link.save();
 
-  try {
-    const frontendBase = process.env.FRONTEND_URL || "https://account.harshit107.online";
-    const resetUrl = `${frontendBase}/auth?resetToken=${token}`;
-    await freelyEmail.sendLink({
-      app: appName,
-      recipient: email,
-      sender: appEmail,
-      replyTo: appReplyEmail,
-      subject: "OneLogin - Password Reset Request",
-      link: resetUrl,
-    });
-  } catch (err) {
-    console.warn("Could not dispatch email via freelyEmail:", err.message);
-  }
+  // Asynchronously dispatch password reset link via FreelyEmail
+  freelyEmailService
+    .sendPasswordResetLink(email, token)
+    .then(() => successLog(`Password reset email dispatched to ${email}`))
+    .catch((err) =>
+      errorLog(`Failed to dispatch password reset email: ${err.message}`)
+    );
 
   res.status(200).json({
     msg: "Password reset link has been dispatched to your email",
-    resetToken: token,
+    resetToken: token, // Expose for testing/dev environments
   });
 });
 
+/**
+ * POST /users/password/reset
+ * Completes password update using reset token and dispatches security alert
+ */
 exports.resetPassword = catchAsync(async (req, res) => {
   const { token, newPassword } = req.body;
   if (!token || !newPassword) {
@@ -129,7 +145,14 @@ exports.resetPassword = catchAsync(async (req, res) => {
   await user.save();
   await VerificationLink.deleteOne({ _id: verificationUserLink._id });
 
-  res.status(200).json({ msg: "Password successfully updated! You can now sign in with your new password." });
+  // Send Security Alert Notification via FreelyEmail
+  freelyEmailService
+    .sendPasswordChangedNotice(user.email, user.name)
+    .catch((err) => errorLog(`Failed to dispatch security notice: ${err.message}`));
+
+  res.status(200).json({
+    msg: "Password successfully updated! You can now sign in with your new password.",
+  });
 });
 
 exports.sendVerificationEmail = sendVerificationEmail;
