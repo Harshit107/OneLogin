@@ -3,10 +3,12 @@ const ApiError = require("../utils/ApiError");
 const errorHandler = (err, req, res, next) => {
   let { statusCode, message } = err;
   
+  console.error("SERVER ERROR:", err);
+
   // Default to 500 if unknown error
   if (!err.isOperational) {
     statusCode = statusCode || 500;
-    message = statusCode === 500 ? "Internal Server Error" : message;
+    message = err.message || "Internal Server Error";
   }
 
   const response = {

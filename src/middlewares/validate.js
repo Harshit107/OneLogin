@@ -11,7 +11,8 @@ const validate = (schema) => (req, res, next) => {
     next();
   } catch (error) {
     if (error instanceof z.ZodError) {
-      const errorMessage = error.errors.map((e) => e.message).join(", ");
+      const issues = error.issues || error.errors || [];
+      const errorMessage = issues.map((e) => e.message).join(", ") || error.message;
       return next(new ApiError(400, errorMessage));
     }
     next(error);
