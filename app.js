@@ -10,6 +10,7 @@ const errorHandler = require("./src/middlewares/errorHandler");
 
 const PORT = process.env.PORT || 5000;
 
+// Application instance
 const app = express();
 
 // Trust reverse proxy (Render, Cloudflare) for accurate client IP and express-rate-limit
