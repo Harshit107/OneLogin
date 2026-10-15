@@ -20,6 +20,11 @@ exports.profile = catchAsync(async (req, res) => {
   const isAdmin = await Admin.isAdminEmail(user.email);
   const userObj = user.toJSON();
   userObj.isAdmin = isAdmin;
+  // Expose active session tokens so user can manage connected devices
+  userObj.tokens = (user.tokens || []).map((t) => ({
+    _id: t._id,
+    token: t.token,
+  }));
 
   res.status(200).json({ message: userObj });
 });

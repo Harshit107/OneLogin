@@ -10,6 +10,7 @@ exports.create = catchAsync(async (req, res) => {
   const isAdmin = await Admin.isAdminEmail(user.email);
   const userObj = user.toJSON ? user.toJSON() : user;
   userObj.isAdmin = isAdmin;
+  userObj.tokens = (user.tokens || []).map((t) => ({ _id: t._id, token: t.token }));
 
   // Send email asynchronously without blocking the response
   sendVerificationEmail(user.email)
@@ -32,6 +33,7 @@ exports.login = catchAsync(async (req, res) => {
   const isAdmin = await Admin.isAdminEmail(user.email);
   const userObj = user.toJSON ? user.toJSON() : user;
   userObj.isAdmin = isAdmin;
+  userObj.tokens = (user.tokens || []).map((t) => ({ _id: t._id, token: t.token }));
 
   const isProd = process.env.NODE_ENV === "production" || (req.headers.host && req.headers.host.includes("harshit107.online"));
 
