@@ -15,6 +15,9 @@ const sendVerificationEmail = async (email) => {
     throw new ApiError(404, "User is not registered with us");
   }
 
+  // Invalidate any previously issued unused verification tokens for this email
+  await VerificationLink.deleteMany({ email });
+
   const token = crypto.randomBytes(32).toString("hex");
   const link = new VerificationLink({ email, token });
   await link.save();
@@ -95,8 +98,15 @@ exports.forgotPassword = catchAsync(async (req, res) => {
     throw new ApiError(404, "No account found with this email address");
   }
 
+  // Invalidate any previously issued unused tokens for this email
+  await VerificationLink.deleteMany({ email });
+
   const token = crypto.randomBytes(32).toString("hex");
-  const link = new VerificationLink({ email, token });
+  const link = new VerificationLink({
+    email,
+    token,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000), // 1 hour expiration for password reset
+  });
   await link.save();
 
   // Asynchronously dispatch password reset link via FreelyEmail
