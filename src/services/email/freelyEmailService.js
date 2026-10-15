@@ -26,7 +26,7 @@ const APP_REPLY_TO = process.env.APP_REPLY_EMAIL || "support@harshit107.online";
 /**
  * Helper to dispatch HTTP request to FreelyEmail API with timeout
  */
-async function postToFreelyEmail(endpoint, payload, timeoutMs = 8000) {
+async function postToFreelyEmail(endpoint, payload, timeoutMs = 20000) {
   const url = `${getBaseUrl()}${endpoint}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -56,6 +56,9 @@ async function postToFreelyEmail(endpoint, payload, timeoutMs = 8000) {
     return data;
   } catch (error) {
     clearTimeout(timer);
+    if (error.name === "AbortError") {
+      throw new Error(`FreelyEmail request timed out after ${timeoutMs / 1000}s`);
+    }
     throw error;
   }
 }
