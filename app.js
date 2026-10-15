@@ -12,6 +12,9 @@ const PORT = process.env.PORT || 5000;
 
 const app = express();
 
+// Trust reverse proxy (Render, Cloudflare) for accurate client IP and express-rate-limit
+app.set("trust proxy", 1);
+
 app.use(cors({
   origin: [
     "http://localhost:5173",

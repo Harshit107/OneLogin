@@ -198,7 +198,7 @@ OneLogin/
 ├── src/
 │   ├── config.js                # Environment configs / App wide constants
 │   ├── controllers/             # Request handlers (auth, oauth, projects, etc)
-│   ├── database/                # Database connections (Mongoose, Firebase)
+│   ├── database/                # Database connection (Mongoose / MongoDB)
 │   ├── middlewares/             # Custom Express Middlewares (UserAuth, OAuthAuth)
 │   ├── model/                   # Mongoose Schemas (User, OAuthClient, OAuthSession, etc)
 │   ├── routes/                  # Express Route definitions

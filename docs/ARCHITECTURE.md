@@ -9,7 +9,7 @@ This document provides a single-source-of-truth technical overview of the **OneL
 - **Project Name**: OneLogin
 - **Type**: Centralized Identity Provider (IdP) & Single Sign-On (SSO) Server
 - **Core Standard**: OAuth 2.0 Authorization Code Grant Flow
-- **Runtimes & Frameworks**: Node.js (Express.js), MongoDB (Mongoose), Firebase Realtime Database
+- **Runtimes & Frameworks**: Node.js (Express.js), MongoDB (Mongoose)
 - **Code Intelligence**: CodeGraph index initialized (`.codegraph/`)
 
 OneLogin enables third-party client applications to authenticate users securely via an OAuth 2.0 Authorization Code flow. It maintains a central browser session (`sso_session` cookie) to grant single-sign-on access across connected clients, and issues short-lived JWT access tokens and long-lived refresh tokens for microservice backends.
@@ -67,12 +67,8 @@ sequenceDiagram
 | **OAuthToken** | `src/model/oauth/OAuthToken.js` | `access_token` (JWT), `refresh_token`, `user_id` (ref User), `client_id`, `expires_at` (15m), `refresh_expires_at` (7d) | Issued OAuth tokens with refresh lifecycle. |
 | **QRCode** | `src/model/QRCode.js` | `code` (UUID), `token` (String) | Cross-device QR companion authentication state. |
 | **VerificationLink** | `src/model/VerificationLink.js` | `email` | Email verification token links. |
+| **Project** | `src/model/Project.js` | `name`, `apiKey`, `admin` (ref User), `developers`, `maintenance`, `verification`, `email` | Registered developer client applications. |
 | **Developer** | `src/model/Developer.js` | `developerName`, `developerImage`, `createdBy`, `userId` | Developer entity for project management. |
-
-### 3.2 Firebase Realtime Database (`src/database/FirebaseHelper.js`)
-Used for developer project configuration:
-- `developer/{developerId}/details/securityKey`: Developer API key.
-- `developer/{developerId}/projects/{projectId}/details`: Contains `name`, `api`, `admin`, `maintenance` (bool), `verification` (bool), `developer: [ids]`.
 
 ---
 
@@ -115,9 +111,10 @@ Used for developer project configuration:
 - `POST /users/login/qr/validate`: Desktop polls; when token is present, consumes token and deletes `QRCode` entry.
 
 ### 4.4 Developer & Projects (`/developer`)
-- `POST /developer/project/create`: Creates project in Firebase RTDB.
-- `POST /developer/project/get`: Retrieves project config.
+- `POST /developer/project/create`: Creates project in MongoDB.
+- `POST /developer/project/get`: Retrieves project config with ownership checks.
 - `PATCH /developer/project/update/general`: Updates project properties (`name`, `email`, `maintenance`, `verification`).
+- `GET /developer/project/list`: Returns all projects belonging to the authenticated developer.
 
 ---
 
@@ -152,7 +149,7 @@ The codebase has undergone defensive hardening with the following protections in
 | **Admin Secret Timing Protection** | `src/controllers/oauth/oauthController.js` | Uses `crypto.timingSafeEqual` and disallows weak fallbacks in production. |
 | **QR Code Expiration TTL** | `src/model/QRCode.js`, `src/controllers/qrController.js` | Enforces 2-minute expiration with MongoDB TTL indexes and controller checks. |
 | **Cryptographic Email Tokens** | `src/model/VerificationLink.js`, `src/controllers/verificationController.js` | Uses 32-byte crypto random tokens with a 24-hour expiration TTL index. |
-| **Firebase Credential Fallback** | `src/database/firebaseConfig.js`, `FirebaseHelper.js` | Supports `FIREBASE_SERVICE_ACCOUNT` via env and guards uninitialized database calls. |
+| **MongoDB Developer Projects** | `src/model/Project.js`, `src/services/project/projectService.js` | Native MongoDB project collections with ownership authorization and listing. |
 | **Resolved Runtime Bugs** | `User.js`, `userAuth.js`, `stringHelper.js` | Fixed `findByCredentials` method typo, implemented missing `stringHelper`, and normalized `JWT` env casing. |
 
 ---

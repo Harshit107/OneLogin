@@ -29,4 +29,7 @@ router.patch(
   projectController.update
 );
 
+// List All Projects for Authenticated User
+router.get("/project/list", userAuth, projectController.list);
+
 module.exports = router;

@@ -63,7 +63,7 @@ userSchema.methods.toJSON = function () {
 userSchema.pre("save", async function (next) {
   const user = this;
   if (user.isModified("password")) {
-    user.password = await bcrypt.hash(user.password, 8);
+    user.password = await bcrypt.hash(user.password, 10);
   }
   next();
 });
@@ -88,10 +88,15 @@ userSchema.methods.generateToken = async function () {
       _id: user._id.toString(),
     },
     jwtSecret,
+    {
+      expiresIn: "7d",
+    }
   );
-  user.tokens = user.tokens.concat({
-    token,
-  });
+
+  // Keep max 10 active tokens to prevent unbounded document bloat
+  const updatedTokens = user.tokens ? user.tokens.slice(-9) : [];
+  user.tokens = updatedTokens.concat({ token });
+
   await user.save();
   return token;
 };

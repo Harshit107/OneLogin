@@ -7,12 +7,17 @@ const oauthClientSchema = new mongoose.Schema({
   app_name: { type: String, required: true },
   redirect_uris: [{ type: String, required: true }],
   allowed_scopes: [{ type: String }],
+  user_id: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    index: true,
+  },
 }, { timestamps: true });
 
 oauthClientSchema.pre("save", async function (next) {
   const client = this;
   if (client.isModified("client_secret")) {
-    client.client_secret = await bcrypt.hash(client.client_secret, 8);
+    client.client_secret = await bcrypt.hash(client.client_secret, 10);
   }
   next();
 });

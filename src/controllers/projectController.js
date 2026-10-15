@@ -26,7 +26,24 @@ exports.update = catchAsync(async (req, res) => {
   const { projectId, ...updateData } = req.body;
   const userId = req.user._id;
 
-  await projectService.updateProject(userId, projectId, updateData);
+  const updatedProject = await projectService.updateProject(
+    userId,
+    projectId,
+    updateData
+  );
 
-  res.status(200).json({ message: "Success" });
+  res.status(200).json({
+    message: "Success",
+    project: updatedProject,
+  });
+});
+
+exports.list = catchAsync(async (req, res) => {
+  const userId = req.user._id;
+  const projects = await projectService.listUserProjects(userId);
+
+  res.status(200).json({
+    message: "Projects retrieved successfully",
+    projects,
+  });
 });
