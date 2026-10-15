@@ -26,7 +26,7 @@ const APP_REPLY_TO = process.env.APP_REPLY_EMAIL || "support@harshit107.online";
 /**
  * Helper to dispatch HTTP request to FreelyEmail API with timeout
  */
-async function postToFreelyEmail(endpoint, payload, timeoutMs = 20000) {
+async function postToFreelyEmail(endpoint, payload, timeoutMs = 60000) {
   const url = `${getBaseUrl()}${endpoint}`;
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
