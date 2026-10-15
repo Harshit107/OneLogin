@@ -118,8 +118,8 @@ exports.forgotPassword = catchAsync(async (req, res) => {
     );
 
   res.status(200).json({
-    msg: "Password reset link has been dispatched to your email",
-    resetToken: token, // Expose for testing/dev environments
+    msg: "Password reset link has been dispatched to your email. Please check your inbox to proceed.",
+    ...(process.env.NODE_ENV === "test" ? { resetToken: token } : {}),
   });
 });
 
