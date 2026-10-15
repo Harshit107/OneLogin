@@ -1,14 +1,17 @@
 const express = require("express");
 const router = express.Router();
 const userAuth = require("../middlewares/userAuth");
+const adminOnly = require("../middlewares/adminOnly");
 const validate = require("../middlewares/validate");
 const projectValidation = require("../validations/projectValidation");
 const projectController = require("../controllers/projectController");
 
+// All project management routes are strictly reserved for administrators
+router.use(userAuth, adminOnly);
+
 // Create Project
 router.post(
   "/project/create",
-  userAuth,
   validate(projectValidation.createProject),
   projectController.create
 );
@@ -16,7 +19,6 @@ router.post(
 // Get Project Details
 router.post(
   "/project/get",
-  userAuth,
   validate(projectValidation.getProject),
   projectController.get
 );
@@ -24,12 +26,11 @@ router.post(
 // Update Project
 router.patch(
   "/project/update/general",
-  userAuth,
   validate(projectValidation.updateProject),
   projectController.update
 );
 
-// List All Projects for Authenticated User
-router.get("/project/list", userAuth, projectController.list);
+// List All Projects for Admin
+router.get("/project/list", projectController.list);
 
 module.exports = router;

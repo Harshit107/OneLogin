@@ -1,10 +1,15 @@
 const catchAsync = require("../utils/catchAsync");
 const authService = require("../services/auth/authService");
+const Admin = require("../model/Admin");
 const { sendVerificationEmail } = require("./verificationController.js");
 const { errorLog, successLog } = require("../services/admin/logs.js");
 
 exports.create = catchAsync(async (req, res) => {
   const { user, token } = await authService.registerUser(req.body);
+
+  const isAdmin = await Admin.isAdminEmail(user.email);
+  const userObj = user.toJSON ? user.toJSON() : user;
+  userObj.isAdmin = isAdmin;
 
   // Send email asynchronously without blocking the response
   sendVerificationEmail(user.email)
@@ -12,8 +17,9 @@ exports.create = catchAsync(async (req, res) => {
     .catch((e) => errorLog("Error in sending verification email: " + e.message));
 
   res.status(201).json({
-    user,
+    user: userObj,
     token,
+    isAdmin,
     userId: user._id,
     message: "User created successfully",
   });
@@ -22,6 +28,10 @@ exports.create = catchAsync(async (req, res) => {
 exports.login = catchAsync(async (req, res) => {
   const { email, password } = req.body;
   const { user, token, ssoSessionId } = await authService.loginUser(email, password);
+
+  const isAdmin = await Admin.isAdminEmail(user.email);
+  const userObj = user.toJSON ? user.toJSON() : user;
+  userObj.isAdmin = isAdmin;
 
   const isProd = process.env.NODE_ENV === "production" || (req.headers.host && req.headers.host.includes("harshit107.online"));
 
@@ -36,8 +46,9 @@ exports.login = catchAsync(async (req, res) => {
   successLog("User Logged In Successfully");
   
   res.status(200).json({ 
-    user, 
-    token, 
+    user: userObj, 
+    token,
+    isAdmin, 
     message: "User logged in successfully" 
   });
 });
