@@ -13,9 +13,9 @@ exports.create = catchAsync(async (req, res) => {
   userObj.tokens = (user.tokens || []).map((t) => ({ _id: t._id, token: t.token }));
 
   // Send email asynchronously without blocking the response
-  sendVerificationEmail(user.email)
-    .then((d) => successLog("Verification email sent successfully", d))
-    .catch((e) => errorLog("Error in sending verification email: " + e.message));
+  sendVerificationEmail(user.email).catch((e) =>
+    errorLog("Error in sending verification email: " + e.message)
+  );
 
   res.status(201).json({
     user: userObj,
@@ -46,11 +46,11 @@ exports.login = catchAsync(async (req, res) => {
   });
 
   successLog("User Logged In Successfully");
-  
-  res.status(200).json({ 
-    user: userObj, 
+
+  res.status(200).json({
+    user: userObj,
     token,
-    isAdmin, 
-    message: "User logged in successfully" 
+    isAdmin,
+    message: "User logged in successfully"
   });
 });

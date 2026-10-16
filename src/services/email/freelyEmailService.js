@@ -1,4 +1,4 @@
-const { errorLog, successLog } = require("../admin/logs");
+const { errorLog } = require("../admin/logs");
 
 /**
  * FreelyEmail Live Service Integration
@@ -83,12 +83,10 @@ async function sendVerificationLink(recipient, token, options = {}) {
   };
 
   try {
-    const result = await postToFreelyEmail(
+    return await postToFreelyEmail(
       "/api/v1/emails/verification/link",
       payload
     );
-    successLog(`[FreelyEmail] Verification link sent to ${recipient}`);
-    return result;
   } catch (err) {
     errorLog(
       `[FreelyEmail] Failed to send verification link to ${recipient}: ${err.message}`
@@ -117,12 +115,10 @@ async function sendPasswordResetLink(recipient, token, options = {}) {
   };
 
   try {
-    const result = await postToFreelyEmail(
+    return await postToFreelyEmail(
       "/api/v1/emails/verification/link",
       payload
     );
-    successLog(`[FreelyEmail] Password reset link sent to ${recipient}`);
-    return result;
   } catch (err) {
     errorLog(
       `[FreelyEmail] Failed to send password reset link to ${recipient}: ${err.message}`
@@ -147,9 +143,7 @@ async function sendPasswordChangedNotice(recipient, name = "User") {
   };
 
   try {
-    const result = await postToFreelyEmail("/api/v1/emails/send", payload);
-    successLog(`[FreelyEmail] Security alert dispatched to ${recipient}`);
-    return result;
+    return await postToFreelyEmail("/api/v1/emails/send", payload);
   } catch (err) {
     errorLog(
       `[FreelyEmail] Failed to send security alert to ${recipient}: ${err.message}`
@@ -173,9 +167,7 @@ async function sendWelcomeEmail(recipient, name = "there") {
   };
 
   try {
-    const result = await postToFreelyEmail("/api/v1/emails/send", payload);
-    successLog(`[FreelyEmail] Welcome email sent to ${recipient}`);
-    return result;
+    return await postToFreelyEmail("/api/v1/emails/send", payload);
   } catch (err) {
     errorLog(
       `[FreelyEmail] Failed to send welcome email to ${recipient}: ${err.message}`

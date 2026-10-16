@@ -99,7 +99,7 @@ sequenceDiagram
 - `POST /users/logout/all`: Clear all device tokens for user.
 - `POST /users/logout/all/current`: Clear all device tokens except current.
 - `POST /users/logout/device`: Revoke a specific token passed in request body.
-- `POST /users/verification/email`: Send verification email via `freely-email`.
+- `POST /users/verification/email`: Send verification email via `FreelyEmail` API service.
 - `GET /users/verification/email/:id`: Complete email verification.
 - `GET /users/check/login`: Verifies if token is valid.
 - `GET /users/isVerified`: Returns email verification status.

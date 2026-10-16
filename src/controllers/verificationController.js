@@ -4,7 +4,7 @@ const catchAsync = require("../utils/catchAsync.js");
 const ApiError = require("../utils/ApiError.js");
 const crypto = require("crypto");
 const freelyEmailService = require("../services/email/freelyEmailService");
-const { errorLog, successLog } = require("../services/admin/logs");
+const { errorLog } = require("../services/admin/logs");
 
 /**
  * Dispatches account email verification link via FreelyEmail live server.
@@ -25,7 +25,6 @@ const sendVerificationEmail = async (email) => {
   // Asynchronously dispatch via live FreelyEmail service without blocking
   freelyEmailService
     .sendVerificationLink(email, token)
-    .then(() => successLog(`Verification email dispatched to ${email}`))
     .catch((err) =>
       errorLog(`Failed to dispatch verification email via FreelyEmail: ${err.message}`)
     );
@@ -112,7 +111,6 @@ exports.forgotPassword = catchAsync(async (req, res) => {
   // Asynchronously dispatch password reset link via FreelyEmail
   freelyEmailService
     .sendPasswordResetLink(email, token)
-    .then(() => successLog(`Password reset email dispatched to ${email}`))
     .catch((err) =>
       errorLog(`Failed to dispatch password reset email: ${err.message}`)
     );
